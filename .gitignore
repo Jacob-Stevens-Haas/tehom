@@ -1,6 +1,5 @@
-chenv/*
 .vscode
-*token
+commit-msg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
