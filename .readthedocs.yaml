@@ -18,6 +18,6 @@ formats:
 python:
   version: 3.8
   install:
-    - method: pip
-      extra_requirements:
-        - sphinx==4.0.2
+    - requirements: docs/requirements-docs.txt
+    - method: setuptools
+      path: .
