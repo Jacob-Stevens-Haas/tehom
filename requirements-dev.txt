@@ -6,7 +6,7 @@ isort
 pre-commit
 pip
 pytest
-sphinx
+sphinx==4.0.2
 twine
 versioneer
 wheel
