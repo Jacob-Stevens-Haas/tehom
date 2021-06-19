@@ -1,0 +1,2 @@
+include versioneer.py
+include tehom/_version.py
