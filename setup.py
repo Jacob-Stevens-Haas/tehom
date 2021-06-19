@@ -4,8 +4,7 @@ from setuptools import setup
 import versioneer
 
 
-
 setup(
-      cmdclass = versioneer.get_cmdclass(),
-      version = versioneer.get_version()
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
 )
