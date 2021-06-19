@@ -1,0 +1,12 @@
+asv
+black
+build
+flake8
+flake8-comprehensions
+isort
+pre-commit
+pip
+pytest
+sphinx
+twine
+versioneer
