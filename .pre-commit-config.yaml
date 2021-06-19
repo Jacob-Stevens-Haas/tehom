@@ -1,7 +1,7 @@
 minimum_pre_commit_version: '2.9.2'
 repos:
 -   repo: https://github.com/python/black
-    rev: 20.8b1
+    rev: 21.6b0
     hooks:
     -   id: black
 -   repo: https://gitlab.com/pycqa/flake8
