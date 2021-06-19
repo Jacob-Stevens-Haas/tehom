@@ -25,3 +25,16 @@ exclude = '''
   | setup.py
 )
 '''
+
+
+[tool.pytest.ini_options]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]
+testpaths = [
+  "tehom/",
+]
+
+[tool.coverage.run]
+source = ["tehom"]
+omit = ["*__init__.py"]
