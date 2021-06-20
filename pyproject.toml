@@ -42,7 +42,11 @@ testpaths = [
 
 [tool.coverage.run]
 source = ["tehom"]
-omit = ["*__init__.py"]
+omit = [
+  "*__init__.py",
+  "*_version.py",
+  "tehom/tests/*",
+]
 
 [tool.isort]
 profile = "black"
