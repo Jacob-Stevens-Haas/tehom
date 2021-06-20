@@ -41,6 +41,6 @@ jobs:
       - name: Coverage report
         run: |
           python -m coverage report
-      - name: Publish results to coveralls
-        run: |
-          coveralls --service=github-actions
+      # - name: Publish results to coveralls
+      #   run: |
+      #     coveralls -v --service=github
