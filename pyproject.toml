@@ -43,9 +43,9 @@ testpaths = [
 [tool.coverage.run]
 source = ["tehom"]
 omit = [
-  "*__init__.py",
-  "*_version.py",
-  "tehom/tests/*",
+  "**/__init__.py",
+  "**/_version.py",
+  "**/tests/*",
 ]
 
 [tool.isort]

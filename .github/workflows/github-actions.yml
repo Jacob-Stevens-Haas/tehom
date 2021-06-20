@@ -30,7 +30,7 @@ jobs:
           pre-commit install
       - name: precommit
         run: |
-          pre-commit run --all-files
+          pre-commit run
       - name: Test with pytest
         run: |
           python -m coverage run -m pytest
