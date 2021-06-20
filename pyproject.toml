@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
 verbose = 1
-exclude = '''
+force-exclude = '''
 (
     asv/env
   | \.egg
