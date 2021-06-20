@@ -42,5 +42,8 @@ jobs:
         run: |
           python -m coverage report
       - name: Publish results to coveralls
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          GITHUB_TOKEN: $COVERALLS_REPO_TOKEN
         run: |
-          coveralls -v --service=github
+          coveralls -v --service=github-actions
