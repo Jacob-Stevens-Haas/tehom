@@ -47,6 +47,10 @@ omit = ["*__init__.py"]
 [tool.isort]
 profile = "black"
 verbose = true
+force_alphabetical_sort_within_sections = true
+use_parentheses = true
+lines_between_types = 1
+only_sections = true
 extend_skip = [
   "env",
   "versioneer.py",

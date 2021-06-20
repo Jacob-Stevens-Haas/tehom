@@ -13,20 +13,17 @@ With the datalib, you can:
 """
 from dataclasses import dataclass
 from datetime import datetime
-# Standard Library
 from pathlib import Path
-# Types for Type Hints
 from typing import List, Tuple, Union
 
-# 3rd Party
 import pandas as pd
+
 from matplotlib.figure import Figure as MFigure
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas.core.frame import DataFrame
 from plotly.graph_objs._figure import Figure as PFigure
 
-# Local modules
 from . import shared
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
