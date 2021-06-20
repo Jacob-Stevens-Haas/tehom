@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.8]
 
     steps:
       - uses: actions/checkout@v2
@@ -41,9 +41,9 @@ jobs:
       - name: Coverage report
         run: |
           python -m coverage report
-      - name: Publish results to coveralls
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-          GITHUB_TOKEN: $COVERALLS_REPO_TOKEN
-        run: |
-          coveralls -v --service=github-actions
+      # - name: Publish results to coveralls
+      #   env:
+      #     COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      #     GITHUB_TOKEN: $COVERALLS_REPO_TOKEN
+      #   run: |
+      #     coveralls -v --service=github-actions
