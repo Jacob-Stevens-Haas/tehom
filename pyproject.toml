@@ -43,3 +43,14 @@ testpaths = [
 [tool.coverage.run]
 source = ["tehom"]
 omit = ["*__init__.py"]
+
+[tool.isort]
+profile = "black"
+verbose = true
+extend_skip = [
+  "env",
+  "versioneer.py",
+  "docs",
+  "_version.py",
+  "setup.py"
+]
