@@ -8,6 +8,9 @@ on:
     branches:
     - master
     
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}"
+
 jobs:
   build:
 
@@ -26,6 +29,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
+          python -m pip install coveralls
           python setup.py install
           pre-commit install
       - name: precommit
@@ -37,3 +41,6 @@ jobs:
       - name: Coverage report
         run: |
           python -m coverage report
+      - name: Publish results to coveralls
+        run: |
+          coveralls --service=github-actions
