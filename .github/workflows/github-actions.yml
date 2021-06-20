@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.9]
+        python-version: [3.7, 3.8]
 
     steps:
       - uses: actions/checkout@v2
@@ -41,6 +41,6 @@ jobs:
       - name: Coverage report
         run: |
           python -m coverage report
-      # - name: Publish results to coveralls
-      #   run: |
-      #     coveralls -v --service=github
+      - name: Publish results to coveralls
+        run: |
+          coveralls -v --service=github
