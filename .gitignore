@@ -110,6 +110,7 @@ celerybeat.pid
 .venv
 env/
 venv/
+tehom-py38-venv/
 ENV/
 env.bak/
 venv.bak/
