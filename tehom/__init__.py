@@ -1,3 +1,4 @@
+import sys
 import argparse
 
 from typing import Union
@@ -36,3 +37,14 @@ save_token_parser = argparse.ArgumentParser(
 )
 save_token_parser.add_argument("token")
 save_token_parser.add_argument("-f", "--force", type=bool, default=False)
+
+
+def __main__():
+    subcommand = sys.argv[1]
+    if subcommand == "save-token":
+        parser = save_token_parser
+        args = parser.parse_args(sys.argv[2:])
+        subcommand = save_user_token
+    else:
+        raise ValueError(f"No subcommand named '{subcommand}'")
+    subcommand(**vars(args))

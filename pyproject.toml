@@ -9,6 +9,7 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
 verbose = 1
+line-length = 79
 force-exclude = '''
 (
     asv/env
