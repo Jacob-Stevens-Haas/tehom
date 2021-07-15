@@ -7,7 +7,7 @@ STORAGE = Path(__file__).parent / "storage"
 AIS_DB = STORAGE / "ais.db"
 ONC_DB = STORAGE / "onc.db"
 ONC_DIR = STORAGE / "onc"
-AIS_TEMP_DIR = STORAGE / "onc"
+AIS_TEMP_DIR = STORAGE / "ais"
 LOCAL_TOKEN_PATH = STORAGE / "token"
 
 
@@ -46,7 +46,18 @@ def test_storage():
 
 def _init_data_folder():
     """Initializes the data folder if it doesn't exist."""
-    # see `STORAGE`, `AIS_TEMP_DIR`, and `ONC_DIR` globals.
+    if not STORAGE.exists() and STORAGE.is_dir():
+        STORAGE.mkdir()
+    elif STORAGE.exists() and not STORAGE.is_dir():
+        raise OSError("{} exists but is not a directory.".format(str(STORAGE)))
+    if not ONC_DIR.exists() and ONC_DIR.is_dir():
+        ONC_DIR.mkdir()
+    elif ONC_DIR.exists() and not ONC_DIR.is_dir():
+        raise OSError("{} exists but is not a directory.".format(str(ONC_DIR)))
+    if not AIS_TEMP_DIR.exists() and AIS_TEMP_DIR.is_dir():
+        AIS_TEMP_DIR.mkdir()
+    elif AIS_TEMP_DIR.exists() and not AIS_TEMP_DIR.is_dir():
+        raise OSError(f"{AIS_TEMP_DIR} exists but is not a directory.")
     pass
 
 
