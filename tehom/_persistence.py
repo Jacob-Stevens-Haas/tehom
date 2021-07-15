@@ -2,8 +2,6 @@
 from typing import Union
 from pathlib import Path
 
-# from sqlalchemy import *
-
 STORAGE = Path(__file__) / "storage"
 AIS_DB = STORAGE / "ais.db"
 ONC_DB = STORAGE / "onc.db"
