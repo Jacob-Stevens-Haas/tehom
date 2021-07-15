@@ -11,9 +11,12 @@ With the datalib, you can:
 * Show the data either available for download or already downloaded
 * Sample downloaded data into a labeled format, ready for ``model.fit``
 """
+import shutil
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Set
+from pathlib import Path
 
 import pandas as pd
 
@@ -41,6 +44,76 @@ def download_ships(year: int, month: int, zone: int) -> None:
     """
     _persistence._init_data_folder()
     _persistence._init_ais_db(_persistence.AIS_DB)
+    if (year, month, zone) not in _get_ais_downloads(_persistence.AIS_DB):
+        zipfile_path = _download_ais_to_temp(year, month, zone)
+        unzipped_tree, unzipped_target = _unzip_ais(zipfile_path)
+        failure = _load_ais_csv_to_db(unzipped_target)
+        if not failure:
+            shutil.rmtree(unzipped_tree)
+        else:
+            raise RuntimeError(
+                "Failed to load data to database; check format of"
+                f" {unzipped_target}"
+            )
+    else:
+        print(f"AIS data already stored for {year}, {month} zone {zone}.")
+    pass
+
+
+def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
+    """Downloads AIS records from Marine Cadastre.
+
+    Arguments:
+        year: year to download
+        month: month to download
+        zone: UTM zone to download
+
+    Returns:
+        location of download result
+    """
+    # morgan
+    pass
+
+
+def _unzip_ais(zipfile: Path) -> Tuple[Path]:
+    """Unzips the temporary zipfile
+
+    Arguments:
+        zipfile: file to unzip
+
+    Returns:
+        tuple comprising the root of the unzip tree and the specific
+        unzipped file of interest
+    """
+    # morgan
+    pass
+
+
+def _get_ais_downloads(ais_db: Path) -> Set:
+    """Identify which AIS year-month-zone combinations have already been
+    added to the AIS database
+
+    Arguments:
+        ais_db: path to the database of AIS records
+
+    Returns:
+        set of records, each arragned as a tuple comprising (year,
+        month, zone)
+    """
+    pass
+
+
+def _load_ais_csv_to_db(csvfile: Path, ais_db: Path) -> int:
+    """Loads the AIS records from the given file into the appropriate
+    table in ais_db and updates the metadata table in ais_db
+
+    Arguments:
+        csvfile: location of AIS records to add
+        ais_db: location of AIS database to update
+
+    Returns:
+        Return value from the sqlite subprocess
+    """
     pass
 
 
