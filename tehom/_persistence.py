@@ -2,6 +2,8 @@
 from typing import Union
 from pathlib import Path
 
+# from sqlalchemy import *
+
 STORAGE = Path(__file__) / "storage"
 AIS_DB = STORAGE / "ais.db"
 ONC_DB = STORAGE / "onc.db"
@@ -11,7 +13,6 @@ AIS_TEMP_DIR = STORAGE / "ais"
 
 def _init_data_folder():
     """Initializes the data folder if it doesn't exist."""
-    # see `STORAGE`, `AIS_TEMP_DIR`, and `ONC_DIR` globals.
     if not STORAGE.exists() and STORAGE.is_dir():
         STORAGE.mkdir()
     elif STORAGE.exists() and not STORAGE.is_dir():
