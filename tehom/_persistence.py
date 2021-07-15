@@ -97,7 +97,7 @@ def save_user_token(token: Union[Path, str], force: bool = False) -> None:
         )
     if Path(token).exists():
         with open(Path(token), "r") as fh:
-            token = fh.readline()
+            token = fh.readline().strip()
     with open(LOCAL_TOKEN_PATH, "w") as fh:
         fh.write(token)
 
