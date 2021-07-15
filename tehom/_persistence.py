@@ -3,6 +3,19 @@ from contextlib import contextmanager
 from typing import Union
 from pathlib import Path
 
+import sqlalchemy
+
+from sqlalchemy import (
+    create_engine,
+    Table,
+    Column,
+    Integer,
+    Float,
+    String,
+    MetaData,
+    Index,
+)
+
 STORAGE = Path(__file__).parent / "storage"
 AIS_DB = STORAGE / "ais.db"
 ONC_DB = STORAGE / "onc.db"
@@ -61,24 +74,75 @@ def _init_data_folder():
     pass
 
 
-def _init_ais_db(ais_db: Union[Path, str]) -> None:
+def _get_engine(db: Path) -> sqlalchemy.engine.base.Engine:
+    return create_engine("sqlite:///" + str(db))
+
+
+def _init_ais_db(ais_db: Union[Path, str]) -> MetaData:
     """Initializes the local AIS record database, if it does not exist"""
-    # see `AIS_DB` global
-    # Should have two tables:
-    #    meta: year, month, zone
-    #    data: mimic columns in downloads from https://marinecadastre.gov/ais/
-    #      date-time column needs an index
-    pass
+    eng = _get_engine(ais_db)
+    md = MetaData(eng)
+    meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
+    ships_table = Table("ships", md, *_ais_ships_columns())  # noqa: F841
+    md.create_all()
+    return md
+
+
+def _ais_meta_columns():
+    return [
+        Column("year", Integer, primary_key=True),
+        Column("month", Integer, primary_key=True),
+        Column("zone", Integer, primary_key=True),
+    ]
+
+
+def _ais_ships_columns():
+    return [
+        Column("mmsi", Integer, primary_key=True),
+        Column("BaseDateTime", String, primary_key=True),
+        Column("lat", Float),
+        Column("lon", Float),
+        Column("sog", Float),
+        Column("cog", Float),
+        Column("heading", Float),
+        Column("vesselname", String),
+        Column("callsign", String),
+        Column("vesseltype", String),
+        Column("status", String),
+        Column("length", Float),
+        Column("width", Float),
+        Column("draft", Float),
+        Column("cargo", Integer),
+        Index("idx_time_lat_lon", "BaseDateTime", "lat", "lon"),
+    ]
 
 
 def _init_onc_db(onc_db: Union[Path, str]) -> None:
     """Initializes the local AIS record database, if it does not exist"""
     # see `ONC_DB` global
-    # Should have three tables:
-    #    meta: hydrophone, start, finish, format
+    # Should have two tables:
+    #    spans: hydrophone, start, finish, format
     #    files: hydrophone, start, duration, format, filename
-    #    deployments: mimics return columns of onc.getDeployments()
     pass
+
+
+def _onc_spans_columns():
+    return [
+        Column("hydrophone", String, primary_key=True),
+        Column("start", String, primary_key=True),
+        Column("finish", String, primary_key=True),
+        Column("format", String, primary_key=True),
+    ]
+
+
+def _onc_files_columns():
+    return [
+        Column("hydrophone", String, primary_key=True),
+        Column("start", String, primary_key=True),
+        Column("duration", Integer),
+        Column("format", String),
+        Column("filename", String),
+    ]
 
 
 def save_user_token(token: Union[Path, str], force: bool = False) -> None:
