@@ -13,7 +13,6 @@ With the datalib, you can:
 """
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
 from typing import List, Tuple, Union
 
 import pandas as pd
@@ -24,31 +23,25 @@ from pandas._libs.tslibs.timestamps import Timestamp
 from pandas.core.frame import DataFrame
 from plotly.graph_objs._figure import Figure as PFigure
 
-from . import shared
+from . import _persistence
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-ais_db = shared.storage / "ais.db"
-onc_db = shared.storage / "onc.db"
 
 
 def download_ships(year: int, month: int, zone: int) -> None:
     """Download AIS records from Marine Cadastre.  Records are stored in
     a local sqlite database.  Marine Cadastre organizes records into
     csv files by year, month, and UTM zone
-    (https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system)
+    (wikipedia the Universal_Transverse_Mercator_coordinate_system)
 
     Parameters:
         year (int): year to download
         month (int): month to download
         zone (int): UTM zone to download
     """
-    init_ais_db(ais_db)
-    raise NotImplementedError
-
-
-def init_ais_db(ais_db: Union[Path, str]) -> None:
-    """Initializes the local AIS record database, if it does not exist"""
-    raise NotImplementedError
+    _persistence._init_data_folder()
+    _persistence._init_ais_db(_persistence.AIS_DB)
+    pass
 
 
 def download_acoustics(
@@ -73,15 +66,9 @@ def download_acoustics(
         extension (str): The file type to download the acoustics.  Can
             be mp3, wav, png, or mat
     """
-    init_onc_db(onc_db)
-    raise NotImplementedError
-
-
-def init_onc_db(onc_db: Union[Path, str]) -> None:
-    """Initializes the local acoustic file database, if it does not
-    exist.
-    """
-    raise NotImplementedError
+    _persistence._init_data_folder()
+    _persistence._init_onc_db(_persistence.ONC_DB)
+    pass
 
 
 def show_available_data(
@@ -109,7 +96,7 @@ def show_available_data(
         A plotly figure if ``style='map'`` or a matplotlib figure if
         ``style='bar'``
     """
-    raise NotImplementedError
+    pass
 
 
 @dataclass
@@ -152,4 +139,4 @@ def sample(
         DataFrame indexed by (hydrophone, time), a column for acoustic
         data as a numpy array, and columns for each label
     """
-    raise NotImplementedError
+    pass
