@@ -1,9 +1,10 @@
 import pytest
 
-from tehom._persistence import test_storage
+from tehom import _persistence
 
 
 @pytest.fixture
 def declare_stateful():
-    with test_storage():
+    with _persistence.test_storage():
+        _persistence._init_data_folder()
         yield None

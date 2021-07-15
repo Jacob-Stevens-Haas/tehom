@@ -46,17 +46,17 @@ def test_storage():
 
 def _init_data_folder():
     """Initializes the data folder if it doesn't exist."""
-    if not STORAGE.exists() and STORAGE.is_dir():
+    if not STORAGE.exists():
         STORAGE.mkdir()
-    elif STORAGE.exists() and not STORAGE.is_dir():
+    elif not STORAGE.is_dir():
         raise OSError("{} exists but is not a directory.".format(str(STORAGE)))
-    if not ONC_DIR.exists() and ONC_DIR.is_dir():
+    if not ONC_DIR.exists():
         ONC_DIR.mkdir()
-    elif ONC_DIR.exists() and not ONC_DIR.is_dir():
+    elif not ONC_DIR.is_dir():
         raise OSError("{} exists but is not a directory.".format(str(ONC_DIR)))
-    if not AIS_TEMP_DIR.exists() and AIS_TEMP_DIR.is_dir():
+    if not AIS_TEMP_DIR.exists():
         AIS_TEMP_DIR.mkdir()
-    elif AIS_TEMP_DIR.exists() and not AIS_TEMP_DIR.is_dir():
+    elif not AIS_TEMP_DIR.is_dir():
         raise OSError(f"{AIS_TEMP_DIR} exists but is not a directory.")
     pass
 
