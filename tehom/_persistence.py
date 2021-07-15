@@ -1,4 +1,5 @@
 """Common variables and functions that may be imported by any module"""
+from contextlib import contextmanager
 from typing import Union
 from pathlib import Path
 
@@ -8,6 +9,39 @@ ONC_DB = STORAGE / "onc.db"
 ONC_DIR = STORAGE / "onc"
 AIS_TEMP_DIR = STORAGE / "onc"
 LOCAL_TOKEN_PATH = STORAGE / "token"
+
+
+@contextmanager
+def test_storage():
+    global STORAGE
+    global AIS_DB
+    global ONC_DB
+    global ONC_DIR
+    global AIS_TEMP_DIR
+    global LOCAL_TOKEN_PATH
+
+    temp_storage = STORAGE
+    temp_ais_db = AIS_DB
+    temp_onc_db = ONC_DB
+    temp_onc_dir = ONC_DIR
+    temp_ais_temp_dir = AIS_TEMP_DIR
+    temp_token_path = LOCAL_TOKEN_PATH
+
+    STORAGE = Path(__file__).parent / "test_storage"
+    AIS_DB = STORAGE / "ais.db"
+    ONC_DB = STORAGE / "onc.db"
+    ONC_DIR = STORAGE / "onc"
+    AIS_TEMP_DIR = STORAGE / "onc"
+    LOCAL_TOKEN_PATH = STORAGE / "token"
+
+    yield None
+
+    STORAGE = temp_storage
+    AIS_DB = temp_ais_db
+    ONC_DB = temp_onc_db
+    ONC_DIR = temp_onc_dir
+    AIS_TEMP_DIR = temp_ais_temp_dir
+    LOCAL_TOKEN_PATH = temp_token_path
 
 
 def _init_data_folder():
