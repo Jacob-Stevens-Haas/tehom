@@ -26,3 +26,13 @@ def test_ais_init(declare_stateful):
     stmt = tb.select()
     result = stmt.execute().fetchall()
     assert len(result) == 1
+
+
+def test_onc_init(declare_stateful):
+    md = _persistence._init_onc_db(_persistence.ONC_DB)
+    tb = md.tables["spans"]
+    stmt = tb.insert(["a", "a", "a", "a"])
+    stmt.execute()
+    stmt = tb.select()
+    result = stmt.execute().fetchall()
+    assert len(result) == 1

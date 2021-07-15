@@ -107,7 +107,7 @@ def _ais_ships_columns():
         Column("heading", Float),
         Column("vesselname", String),
         Column("callsign", String),
-        Column("vesseltype", String),
+        Column("vesseltype", Integer),
         Column("status", String),
         Column("length", Float),
         Column("width", Float),
@@ -119,11 +119,12 @@ def _ais_ships_columns():
 
 def _init_onc_db(onc_db: Union[Path, str]) -> None:
     """Initializes the local AIS record database, if it does not exist"""
-    # see `ONC_DB` global
-    # Should have two tables:
-    #    spans: hydrophone, start, finish, format
-    #    files: hydrophone, start, duration, format, filename
-    pass
+    eng = _get_engine(onc_db)
+    md = MetaData(eng)
+    spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
+    files_table = Table("files", md, *_onc_files_columns())  # noqa: F841
+    md.create_all()
+    return md
 
 
 def _onc_spans_columns():
