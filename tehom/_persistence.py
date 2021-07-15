@@ -57,7 +57,7 @@ def test_storage():
     LOCAL_TOKEN_PATH = temp_token_path
 
 
-def _init_data_folder():
+def init_data_folder():
     """Initializes the data folder if it doesn't exist."""
     if not STORAGE.exists():
         STORAGE.mkdir()
@@ -78,7 +78,7 @@ def _get_engine(db: Path) -> sqlalchemy.engine.base.Engine:
     return create_engine("sqlite:///" + str(db))
 
 
-def _init_ais_db(ais_db: Union[Path, str]) -> MetaData:
+def init_ais_db(ais_db: Union[Path, str]) -> MetaData:
     """Initializes the local AIS record database, if it does not exist"""
     eng = _get_engine(ais_db)
     md = MetaData(eng)
@@ -117,7 +117,7 @@ def _ais_ships_columns():
     ]
 
 
-def _init_onc_db(onc_db: Union[Path, str]) -> None:
+def init_onc_db(onc_db: Union[Path, str]) -> None:
     """Initializes the local AIS record database, if it does not exist"""
     eng = _get_engine(onc_db)
     md = MetaData(eng)

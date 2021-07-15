@@ -19,7 +19,7 @@ def test_save_token(declare_stateful):
 
 
 def test_ais_init(declare_stateful):
-    md = _persistence._init_ais_db(_persistence.AIS_DB)
+    md = _persistence.init_ais_db(_persistence.AIS_DB)
     tb = md.tables["meta"]
     stmt = tb.insert([1, 1, 1])
     stmt.execute()
@@ -29,7 +29,7 @@ def test_ais_init(declare_stateful):
 
 
 def test_onc_init(declare_stateful):
-    md = _persistence._init_onc_db(_persistence.ONC_DB)
+    md = _persistence.init_onc_db(_persistence.ONC_DB)
     tb = md.tables["spans"]
     stmt = tb.insert(["a", "a", "a", "a"])
     stmt.execute()
