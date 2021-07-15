@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Tuple, Union, Set
 from pathlib import Path
+from functools import lru_cache
 
 import pandas as pd
 
@@ -25,10 +26,16 @@ from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas.core.frame import DataFrame
 from plotly.graph_objs._figure import Figure as PFigure
+from onc.onc import ONC
 
 from . import _persistence
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+onc = ONC(
+    _persistence.load_user_token(),
+    showInfo=True,
+    outpath=str(_persistence.ONC_DIR),
+)
 
 
 def download_ships(year: int, month: int, zone: int) -> None:
@@ -141,7 +148,47 @@ def download_acoustics(
     """
     _persistence._init_data_folder()
     _persistence._init_onc_db(_persistence.ONC_DB)
+
+    def code_from_extension(ext):
+        if ext.lower() in ["mp3", "wav", "flac"]:
+            return "AD"
+        elif ext.lower() in ["png"]:
+            return "HSD"
+
+    for hphone in hydrophones:
+        request = onc.requestDataProduct(
+            filters={
+                "dataProductCode": code_from_extension(extension),
+                "extension": extension,
+                "dateFrom": str(begin),
+                "dateTo": str(end),
+                "deviceCode": hphone,
+            }
+        )
+        run_id = request["dpRequestId"]
+        result = onc.runDataProduct(run_id)
+        if result != 200:
+            raise RuntimeError(
+                f"Received HTTP status code {result} when downloading ONC data"
+            )
+        files = onc.downloadDataProduct(run_id)
+        _update_onc_tracker(_persistence.ONC_DB, files)
+
+
+def _update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
+    """Updates the ONC database to track downloads
+
+    Arguments:
+        onc_db: database to track ONC downloads
+        files: list of files downloaded to add to the tracker
+    """
     pass
+
+
+@lru_cache(maxsize=1)
+def _get_deployments():
+    hphones = onc.getDeployments(filters={"deviceCategoryCode": "HYDROPHONE"})
+    return pd.DataFrame(hphones)
 
 
 def show_available_data(
