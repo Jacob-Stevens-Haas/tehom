@@ -20,6 +20,7 @@ from pathlib import Path
 from functools import lru_cache
 
 import pandas as pd
+import numpy as np
 
 from matplotlib.figure import Figure as MFigure
 from pandas._libs.tslibs.timedeltas import Timedelta
@@ -189,6 +190,12 @@ def _update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
 def _get_deployments():
     hphones = onc.getDeployments(filters={"deviceCategoryCode": "HYDROPHONE"})
     return pd.DataFrame(hphones)
+
+
+def _onc_iso_fmt(dt: Union[Timestamp, str]) -> str:
+    """Formats the datetime according to how ONC needs it in requests."""
+    dt = np.datetime64(dt, "ms")
+    return np.datetime_as_string(dt, timezone="UTC")
 
 
 def show_available_data(
