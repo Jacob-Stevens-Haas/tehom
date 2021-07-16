@@ -156,24 +156,29 @@ def download_acoustics(
         elif ext.lower() in ["png"]:
             return "HSD"
 
+    files = []
     for hphone in hydrophones:
         request = onc.requestDataProduct(
             filters={
                 "dataProductCode": code_from_extension(extension),
                 "extension": extension,
-                "dateFrom": str(begin),
-                "dateTo": str(end),
+                "dateFrom": _onc_iso_fmt(begin),
+                "dateTo": _onc_iso_fmt(end),
                 "deviceCode": hphone,
+                "dpo_hydrophoneDataDiversionMode": "OD",
             }
         )
-        run_id = request["dpRequestId"]
-        result = onc.runDataProduct(run_id)
-        if result != 200:
-            raise RuntimeError(
-                f"Received HTTP status code {result} when downloading ONC data"
-            )
-        files = onc.downloadDataProduct(run_id)
-        _update_onc_tracker(_persistence.ONC_DB, files)
+        req_id = request["dpRequestId"]
+        run_ids = onc.runDataProduct(req_id)["runIds"]
+        for id in run_ids:
+
+            downloads = onc.downloadDataProduct(id, includeMetadataFile=False)
+            files += [
+                download["file"]
+                for download in downloads
+                if download["status"] == "complete" and download["downloaded"]
+            ]
+    _update_onc_tracker(_persistence.ONC_DB, files)
 
 
 def _update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
