@@ -34,7 +34,7 @@ ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
 onc = ONC(
     _persistence.load_user_token(),
     showInfo=True,
-    outpath=str(_persistence.ONC_DIR),
+    outPath=str(_persistence.ONC_DIR),
 )
 
 
