@@ -21,6 +21,7 @@ from functools import lru_cache
 
 import pandas as pd
 import numpy as np
+import spans
 
 from matplotlib.figure import Figure as MFigure
 from pandas._libs.tslibs.timedeltas import Timedelta
@@ -191,6 +192,20 @@ def _update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
     pass
 
 
+def _get_onc_downloads(onc_db: Path) -> Set:
+    """Identify which ONC hydrophone data ranges have been downloaded
+    and tracked in the ONC database.
+
+    Arguments:
+        onc_db: path to the database of ONC records
+
+    Returns:
+        set of records, each arragned as a tuple comprising (hydrophone,
+        begin, end, extension)
+    """
+    pass
+
+
 @lru_cache(maxsize=1)
 def _get_deployments():
     hphones = onc.getDeployments(filters={"deviceCategoryCode": "HYDROPHONE"})
@@ -209,25 +224,60 @@ def show_available_data(
     bottomleft: Tuple[float] = (-90.0, -180.0),
     topright: Tuple[float] = (90.0, 180.0),
     style: str = "map",
+    ais_db: Path = _persistence.AIS_DB,
+    onc_db: Path = _persistence.ONC_DB,
 ) -> Union[MFigure, PFigure]:
     """Creates a visualization of what data is available to download and
     what data is available locally for sampling.
 
     Parameters:
-        begin (Union[datetime, str, Timestamp]): start time to display
-        end (Union[datetime, str, Timestamp]): end time to display
-        bottomleft (Tuple[float]): Latitude, longitude tuple.  Only
+        begin: start time to display
+        end: end time to display
+        bottomleft: Latitude, longitude tuple.  Only
             include hydrophones to the northeast of this point.
-        topright (Tuple[float]): Latitude, longitude tuple.  Only
+        topright: Latitude, longitude tuple.  Only
             include hydrophones to the southwest of this point.
-        style (str): Either 'map' for a geographic map with hydrophones
+        style: Either 'map' for a geographic map with hydrophones
             identified or 'bar' for a bar chart showing overlapping
             downloads.
+        ais_db: path to the database of AIS records
+        onc_db: database to track ONC downloads
 
     Returns:
         A plotly figure if ``style='map'`` or a matplotlib figure if
         ``style='bar'``
     """
+    # Ok, Morgan, this should dispatch to two different helper functions
+    # depending on the `style` argument.  Brief descriptions follow.
+
+    # Map style:
+    # Simpler. Basically a scatterplot of hydrophone locations on a map
+    # of the pacific northwest.  Hydrophone locations and deployment
+    # times available in the _get_deployments() function.  You can build
+    # Geo scatter plot with plotly.graph_objects.Scattergeo().  See
+    # https://plotly.com/python/map-configuration/ for examples
+    #
+    # Bar style:
+    # Something like matplotlib.pyplot.barh()
+    # A horizontal bar chart that shows both AIS and ONC data available.
+    # Y axis is a set of bars for each hydrophone, organized by UTM zone
+    # (ONC hydrophones are exclusively in UTM zones 9 and 10).  X axis
+    # is date.  When a single hydrophone has multiple deployments,
+    # it's row should have multiple bars.  Behind the hydrophone bars,
+    # there should be a different-colored bar chart for AIS data
+    # availability, built off of _get_ais_downloads().
+    #
+    # Once ONC data is downloaded, depending on the format, it should
+    # have differently-colored bars overlapping the data-availability
+    # bars.  See _get_onc_downloads().
+    #
+    # In addition, each row should have a label of the hydrophone name
+    # aligned to the left side of the row.
+    #
+    # The trick here is managing the spacing for all the different bars,
+    # of which there could be dozens.  Try to find a good way of
+    # calculating the appropriate height for each bar based upon the
+    # number of hydrophones in each zone.
     pass
 
 
@@ -244,8 +294,6 @@ class SampleParams:
 
     interval = pd.Timedelta(interval)
     duration = pd.Timedelta(duration)
-    if extension not in ["mp3"]:
-        raise ValueError("Only extension with sample() implemented is mp3")
 
 
 def sample(
@@ -253,22 +301,291 @@ def sample(
     begin: Union[datetime, str, Timestamp],
     end: Union[datetime, str, Timestamp],
     sample_params: SampleParams,
+    ais_db: Path = _persistence.AIS_DB,
+    onc_db: Path = _persistence.ONC_DB,
     verbose: bool = False,
 ) -> DataFrame:
     """Sample the downloaded acoustics and AIS data to create a labeled
     dataset for machine learning, ready for ``model.fit()``.
 
     Parameters:
-        hydrophones (List[str]): List of hydrophone names (what ONC
+        hydrophones: List of hydrophone names (what ONC
             calls 'deviceCode's) to sample.
-        begin (Union[datetime, str, Timestamp]): start time for sample
-        end (Union[datetime, str, Timestamp]): end time for sample
+        begin: start time for sample
+        end: end time for sample
         sample_params (SampleParams): parameters for repeatable or
             related data samples.
-        verbose (bool): heavy print output for debugging.
+        ais_db: path to the database of AIS records
+        onc_db: database to track ONC downloads
+        verbose: heavy print output for debugging.
 
     Returns:
         DataFrame indexed by (hydrophone, time), a column for acoustic
         data as a numpy array, and columns for each label
+    """
+    overlaps = _determine_data_overlaps(
+        hydrophones,
+        sample_params.extension,
+        begin,
+        end,
+        ais_db,
+        onc_db,
+    )
+    samples = []
+    for hydrophone, tranges in overlaps:
+        for trange in tranges:
+            times = _choose_sample_times(
+                trange, sample_params.duration, sample_params.interval
+            )
+            file_dict = {
+                time: _get_sample_filepaths(
+                    time,
+                    sample_params.duration,
+                    hydrophone,
+                    sample_params.extension,
+                    onc_db,
+                )
+                for time in times
+            }
+            acoustic_array_dict = {
+                time: _stitch_files_to_array(
+                    files,
+                    time,
+                    sample_params.duration,
+                    sample_params.extension,
+                )
+                for time, files in file_dict.items()
+            }
+            x_vals = pd.Series(
+                acoustic_array_dict,
+                name="x",
+            )
+
+            lat, lon = _get_hphone_posit(hydrophone, list(times)[0])
+            filtered_ais = _get_ais_data(
+                trange.lower, trange.higher, lat, lon, ais_db
+            )
+            interpolated_ships = _interpolate_and_group_ais(
+                filtered_ais, times
+            )
+            labels = interpolated_ships.apply(
+                lambda df: _ais_labeler(df, sample_params)
+            )
+            labels["hydrophone"] = hydrophone
+            samples += labels.join(x_vals).reset_index(["hydrophone", "time"])
+    samples = pd.DataFrame().append(samples)
+    samples["x"] = _truncate_equal_shapes(samples["x"])
+    samples = samples.dropna(subset=["x"])
+    return samples
+
+
+def _determine_data_overlaps(
+    hydrophones: List[str],
+    extension: str,
+    begin: Union[datetime, str, Timestamp],
+    end: Union[datetime, str, Timestamp],
+    ais_db: Path = _persistence.AIS_DB,
+    onc_db: Path = _persistence.ONC_DB,
+) -> Set[Tuple[str, spans.datetimerangeset]]:
+    """Identify the ranges of overlapping downloaded ONC and AIS data.
+
+    Arguments:
+        hydrophones: List of hydrophone names (what ONC
+            calls 'deviceCode's) to sample.
+        extension: File type, e.g. "mp3"
+        begin: start time for sample
+        end: end time for sample
+        ais_db: path to the database of AIS records
+        onc_db: database to track ONC downloads
+
+    Returns:
+        A set of tuples, each comprising:
+        - The hydrophone deviceCode
+        - The datetimerangeset of overlapping intervals
+    """
+    pass
+
+
+def _choose_sample_times(
+    trange: spans.datetimerange,
+    duration: pd.Timedelta,
+    interval: pd.Timedelta,
+) -> Set[pd.Timestamp]:
+    """Calculate evenly-spaced sample times.
+
+    Sample times must be a) no earlier than duration after the lower
+    bound of the range and separated by no less than interval.
+
+    Arguments:
+        trange: the range of times to sample from
+        duration: The duration of observations.
+        interval: the time between observations.
+
+    Returns:
+        Set of times.
+    """
+    pass
+
+
+def _get_sample_filepaths(
+    time: pd.Timestamp,
+    duration: pd.Timedelta,
+    hydrophone: str,
+    extension: str,
+    onc_db: Path,
+) -> List[Path]:
+    """Identifies the filepaths to an acoustic data observation.
+
+    Files should contain the file that occurs at given time, the time
+    at time minus duration, and any files in between.
+
+    Arguments:
+        time: the finish time of the observation
+        duration: the duration of the observation
+        hydrophone: which hydrophone sample comes from
+        extension: file type extension
+        onc_db: database to track ONC downloads
+
+    Returns:_truncate_equal_shapes
+        List of files, ordered from first to last chronologically.
+    """
+    pass
+
+
+def _stitch_files_to_array(
+    files: List[Path],
+    time: pd.Timestamp,
+    duration: pd.Timedelta,
+    extension: str,
+) -> np.ndarray:
+    """Turn the acoustic data for an observation into a numpy array
+
+    Arguments:
+        files: the files, in sequence from earliest to latest, that
+            comprise the observation
+        time: the time of the observation
+        duration: the length of the observation (finishing at ``time``)
+
+    Returns:
+        The acoustic wave or spectrogram as an array
+
+    Todo:
+        standardize the array numerical format (uint8? float? int16?)
+    """
+    pass
+
+
+def _get_hphone_posit(
+    hydrophone: str, time: pd.Timestamp
+) -> Tuple[float, float]:
+    """Determine hydrophone position at a specific time.
+
+    Hydrophones do not move frequently, but they are repositioned
+    between deployments
+
+    Arguments:
+        hydrophone: which hydrophone to get the location of
+        time: time to identify where the hydrophone was
+
+    Returns:
+        tuple of lat, lon
+    """
+    pass
+
+
+def _get_ais_data(
+    begin: pd.Timestamp,
+    end: pd.Timestamp,
+    lat: float,
+    lon: float,
+    ais_db: Path,
+) -> pd.DataFrame:
+    """Returns the ais records filtered by time and location
+
+    Only records within a 40x40 NM square box, centered on the lat and
+    lon, and between 1 hr before begin and 1 hr after end, are returned.
+
+    Arguments:
+        begin: The starting time for observations.
+        end: The ending time for observations
+        lat: latitude coordinate of the center of area of interest
+        lon: longitude coordinate of the center of area of interest
+        ais_db: path to the database of AIS records
+
+    Returns:
+        DataFrame in same structure as stored ship records, but with
+        datetime strings converted to pd.Timestamp/np.datetime64
+    """
+    pass
+
+
+def _interpolate_and_group_ais(
+    ais_df: pd.DataFrame, times
+) -> pd.core.groupby.generic.DataFrameGroupBy:
+    """Interpolate the lat/lon of ships to the specified time.
+
+    Interpolation rules:
+        A ship has observations near the specified time, before and
+            after: linear interpolation
+        A ship has one observation very near the specified time, either
+            before or after, but not both: constant interpolation
+        A ship does not meet above criteria: do not create an
+            interpolated record for this ship at this time
+
+    Note:
+        What counts as "near" and "very near" is subject to change and
+        may be refactored out into an interpolation parameters object
+
+    Arguments:
+        ais_df: ship records, including a basedatetime column.
+        times: when to interpolate the ship positions.
+
+    Returns:
+        The interpolated records, grouped by time.
+    """
+    # Morgan, you'll have to first groupby mmsi (ship unique id) and
+    # then apply an interpolation function for each timepoint.  The
+    # interpolation function will take a dataframe and a timepoint,
+    # and will determine, based on the nearest records before/after
+    # the timepoint, which interpolation rule to apply.
+    #
+    # While this function sounds like it takes a long time, its ok at
+    # the outset to accomplish this somewhat inefficiently.
+    pass
+
+
+def _ais_labeler(
+    ais_df: pd.DataFrame,
+    sample_params: SampleParams,
+) -> pd.Series:
+    """Calculate the labels appropriate for a single point in time
+
+    Arguments:
+        ais_df: The ship records interpolated to a single point in time
+        sample_params: What kinds of labels to apply
+
+    Returns:
+        A record of labels.
+    """
+    pass
+
+
+def _truncate_equal_shapes(ser: pd.Series[np.ndarray]) -> pd.Series:
+    """Truncate most of the data arrays and reject the others
+
+    Using an outlier criterion for thresholding, reject all arrays of a
+    shape smaller in a dimension than the threshold.  Truncate all
+    larger arrays to the threshold.  This usually solves the issue
+    whereby sample points and byte times don't line up perfectly,
+    and some arrays are slightly off.  Outliers are usually caused by
+    some degenerate condition of the data, and should be rejected.
+
+    Arguments:
+        ser: a Series of data arrays
+
+    Returns:
+        The same series, but with individual elements either truncated
+        replaced with None, as appropriate
+
     """
     pass
