@@ -16,3 +16,23 @@ def test_save_token(declare_stateful):
     result = _persistence.load_user_token()
 
     assert result == expected
+
+
+def test_ais_init(declare_stateful):
+    md = _persistence.init_ais_db(_persistence.AIS_DB)
+    tb = md.tables["meta"]
+    stmt = tb.insert([1, 1, 1])
+    stmt.execute()
+    stmt = tb.select()
+    result = stmt.execute().fetchall()
+    assert len(result) == 1
+
+
+def test_onc_init(declare_stateful):
+    md = _persistence.init_onc_db(_persistence.ONC_DB)
+    tb = md.tables["spans"]
+    stmt = tb.insert(["a", "a", "a", "a"])
+    stmt.execute()
+    stmt = tb.select()
+    result = stmt.execute().fetchall()
+    assert len(result) == 1

@@ -51,8 +51,8 @@ def download_ships(year: int, month: int, zone: int) -> None:
         month (int): month to download
         zone (int): UTM zone to download
     """
-    _persistence._init_data_folder()
-    _persistence._init_ais_db(_persistence.AIS_DB)
+    _persistence.init_data_folder()
+    _persistence.init_ais_db(_persistence.AIS_DB)
     if (year, month, zone) not in _get_ais_downloads(_persistence.AIS_DB):
         zipfile_path = _download_ais_to_temp(year, month, zone)
         unzipped_tree, unzipped_target = _unzip_ais(zipfile_path)
