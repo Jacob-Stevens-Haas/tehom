@@ -19,6 +19,7 @@ from typing import List, Tuple, Union, Set
 from pathlib import Path
 from functools import lru_cache
 
+import wget
 import pandas as pd
 import numpy as np
 import spans
@@ -31,6 +32,9 @@ from plotly.graph_objs._figure import Figure as PFigure
 from onc.onc import ONC
 
 from . import _persistence
+
+# from zipfile import ZipFile
+
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
 onc = ONC(
@@ -51,6 +55,8 @@ def download_ships(year: int, month: int, zone: int) -> None:
         month (int): month to download
         zone (int): UTM zone to download
     """
+    _persistence._init_data_folder()
+    _persistence._init_ais_db(_persistence.AIS_DB)
     _persistence.init_data_folder()
     _persistence.init_ais_db(_persistence.AIS_DB)
     if (year, month, zone) not in _get_ais_downloads(_persistence.AIS_DB):
@@ -80,8 +86,13 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-    # morgan
-    pass
+    # JMSH: morgan. MWM, 07/23/2021: Done.
+    url = (
+        f"https://coast.noaa.gov/htdata/CMSP/AISDataHandler/2015/AIS_{year}_  "
+        f"                       {month}_{zone}.zip"
+    )
+    wget.download(url, _persistence.AIS_TEMP_DIR)
+    return _persistence.AIS_TEMP_DIR
 
 
 def _unzip_ais(zipfile: Path) -> Tuple[Path]:
@@ -94,7 +105,7 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
         tuple comprising the root of the unzip tree and the specific
         unzipped file of interest
     """
-    # morgan
+    # JMSH: morgan.
     pass
 
 
