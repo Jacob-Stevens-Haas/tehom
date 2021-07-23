@@ -86,13 +86,62 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-    # JMSH: morgan. MWM, 07/23/2021: Done.
-    url = (
-        f"https://coast.noaa.gov/htdata/CMSP/AISDataHandler/2015/AIS_{year}_  "
-        f"                       {month}_{zone}.zip"
-    )
-    wget.download(url, _persistence.AIS_TEMP_DIR)
-    return _persistence.AIS_TEMP_DIR
+    # MWM, 07/23/2021: Done; predownload logic is parsing.filename
+
+    if month < 10:
+        month = f"0{month}"
+    else:
+        month = str(month)
+
+    if year > 2017:
+        if zone < 10:
+            zone = f"0{zone}"
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/AIS_{year}_{month}_{zone}.zip"
+        )
+    elif year > 2014:
+        if zone < 10:
+            zone = f"0{zone}"
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/AIS_{year}_{month}_Zone{zone}.zip"
+        )
+    elif year == 2014:
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/{month}/Zone{zone}_{year}_{month}.zip"
+        )
+    elif year > 2010:
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/{month}/Zone{zone}_{year}_{month}.gdb.zip"
+        )
+    elif year < 2010:
+        months = {
+            "01": "January",
+            "02": "February",
+            "03": "March",
+            "04": "April",
+            "05": "May",
+            "06": "June",
+            "07": "July",
+            "08": "August",
+            "09": "September",
+            "10": "October",
+            "11": "November",
+            "12": "December",
+        }
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/{month}_{months[month]}/Zone{zone}_{year}_{month}.zip"
+        )
+
+    if isinstance(zone, int) and zone < 10:
+        zone = f"0{zone}"
+    filepath = _persistence.AIS_TEMP_DIR / f"{year}_{month}_{zone}.zip"
+    wget.download(url, filepath)
+    return filepath
 
 
 def _unzip_ais(zipfile: Path) -> Tuple[Path]:
