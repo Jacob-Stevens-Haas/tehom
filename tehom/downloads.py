@@ -133,8 +133,8 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
             "12": "December",
         }
         url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/{month}_{months[month]}/Zone{zone}_{year}_{month}.zip"
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/{year}/"
+            f"{month}_{months[month]}_{year}/Zone{zone}_{year}_{month}.zip"
         )
 
     if isinstance(zone, int) and zone < 10:
