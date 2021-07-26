@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import List, Tuple, Union, Set
 from pathlib import Path
 from functools import lru_cache
+from zipfile import ZipFile
 
 import pandas as pd
 import numpy as np
@@ -94,8 +95,10 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
         tuple comprising the root of the unzip tree and the specific
         unzipped file of interest
     """
-    # morgan
-    pass
+    # JMSH: morgan. MWM, 07/26/2021: Done.
+    with ZipFile(f"{zipfile}", "r") as zipObj:
+        zipObj.extractall(_persistence.AIS_TEMP_DIR)
+    return _persistence.AIS_TEMP_DIR, zipfile.parts[-1]
 
 
 def _get_ais_downloads(ais_db: Path) -> Set:
