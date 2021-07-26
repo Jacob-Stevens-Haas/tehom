@@ -12,6 +12,7 @@ With the datalib, you can:
 * Sample downloaded data into a labeled format, ready for ``model.fit``
 """
 import shutil
+import urllib
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -86,7 +87,7 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-    # MWM, 07/23/2021: Done; predownload logic is parsing.filename
+    # MWM, 07/23/2021: Done; predownload logic parses filename
 
     if month < 10:
         month = f"0{month}"
@@ -140,7 +141,17 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     if isinstance(zone, int) and zone < 10:
         zone = f"0{zone}"
     filepath = _persistence.AIS_TEMP_DIR / f"{year}_{month}_{zone}.zip"
-    wget.download(url, filepath)
+    if not filepath.exists():
+        try:
+            print(f"Downloading data for {year} {month}, Zone {zone}...")
+            wget.download(url, filepath)
+            with open("downloadRecord.txt", "wb") as f:
+                f.write(f"{year}, {month}, {zone}, success")
+        except urllib.error.HTTPError:
+            with open("downloadRecord.txt", "wb") as f:
+                f.write(f"{year}, {month}, {zone}, failure")
+    else:
+        print(f"{filepath} already exists.")
     return filepath
 
 
