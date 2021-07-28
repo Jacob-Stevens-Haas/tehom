@@ -237,9 +237,9 @@ def show_available_data(
         begin: start time to display
         end: end time to display
         bottomleft: Latitude, longitude tuple.  Only
-            include hydrophones to the northeast of this point.
+            include hydrophones north and east of this point.
         topright: Latitude, longitude tuple.  Only
-            include hydrophones to the southwest of this point.
+            include hydrophones south and west of this point.
         style: Either 'map' for a geographic map with hydrophones
             identified or 'bar' for a bar chart showing overlapping
             downloads.
