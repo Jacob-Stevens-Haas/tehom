@@ -12,7 +12,7 @@ With the datalib, you can:
 * Sample downloaded data into a labeled format, ready for ``model.fit``
 """
 import shutil
-import urllib
+import logging
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -34,8 +34,7 @@ from onc.onc import ONC
 
 from . import _persistence
 
-# from zipfile import ZipFile
-
+logger = logging.getLogger(__name__)
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
 onc = ONC(
@@ -142,16 +141,10 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
         zone = f"0{zone}"
     filepath = _persistence.AIS_TEMP_DIR / f"{year}_{month}_{zone}.zip"
     if not filepath.exists():
-        try:
-            print(f"Downloading data for {year} {month}, Zone {zone}...")
-            wget.download(url, filepath)
-            with open("downloadRecord.txt", "wb") as f:
-                f.write(f"{year}, {month}, {zone}, success")
-        except urllib.error.HTTPError:
-            with open("downloadRecord.txt", "wb") as f:
-                f.write(f"{year}, {month}, {zone}, failure")
+        logger.info(f"Downloading data for {year} {month}, Zone {zone}...")
+        wget.download(url, filepath)
     else:
-        print(f"{filepath} already exists.")
+        logger.info(f"{filepath} already exists.")
     return filepath
 
 
