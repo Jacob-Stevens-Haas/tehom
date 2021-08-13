@@ -95,7 +95,6 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
         tuple comprising the root of the unzip tree and the specific
         unzipped file of interest
     """
-    # JMSH: morgan. MWM, 07/26/2021: Done.
     with ZipFile(f"{zipfile}", "r") as zipObj:
         zipObj.extractall(_persistence.AIS_TEMP_DIR)
     return _persistence.AIS_TEMP_DIR, zipfile.parts[-1]
