@@ -20,7 +20,7 @@ from typing import List, Tuple, Union, Set
 from pathlib import Path
 from functools import lru_cache
 
-import wget
+import requests
 import pandas as pd
 import numpy as np
 import spans
@@ -142,7 +142,9 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     filepath = _persistence.AIS_TEMP_DIR / f"{year}_{month}_{zone}.zip"
     if not filepath.exists():
         logger.info(f"Downloading data for {year} {month}, Zone {zone}...")
-        wget.download(url, filepath)
+        r = requests.get(url)
+        with open(filepath, "wb") as f:
+            f.write(r.content)
     else:
         logger.info(f"{filepath} already exists.")
     return filepath
