@@ -12,6 +12,7 @@ With the datalib, you can:
 * Sample downloaded data into a labeled format, ready for ``model.fit``
 """
 import shutil
+import warnings
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -33,11 +34,16 @@ from onc.onc import ONC
 from . import _persistence
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-onc = ONC(
-    _persistence.load_user_token(),
-    showInfo=True,
-    outPath=str(_persistence.ONC_DIR),
-)
+try:
+    onc = ONC(
+        _persistence.load_user_token(),
+        showInfo=True,
+        outPath=str(_persistence.ONC_DIR),
+    )
+except FileNotFoundError:
+    warnings.warn(
+        "Module loaded with no ONC token; unable to query ONC server data."
+    )
 
 
 def download_ships(year: int, month: int, zone: int) -> None:
