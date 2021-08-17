@@ -576,7 +576,7 @@ def _ais_labeler(
     pass
 
 
-def _truncate_equal_shapes(ser: pd.Series[np.ndarray]) -> pd.Series:
+def _truncate_equal_shapes(ser: pd.Series) -> pd.Series:
     """Truncate most of the data arrays and reject the others
 
     Using an outlier criterion for thresholding, reject all arrays of a
