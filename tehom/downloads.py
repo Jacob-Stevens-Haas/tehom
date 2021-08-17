@@ -11,8 +11,9 @@ With the datalib, you can:
 * Show the data either available for download or already downloaded
 * Sample downloaded data into a labeled format, ready for ``model.fit``
 """
-import shutil
 import logging
+import shutil
+import warnings
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -37,11 +38,16 @@ from . import _persistence
 logger = logging.getLogger(__name__)
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-onc = ONC(
-    _persistence.load_user_token(),
-    showInfo=True,
-    outPath=str(_persistence.ONC_DIR),
-)
+try:
+    onc = ONC(
+        _persistence.load_user_token(),
+        showInfo=True,
+        outPath=str(_persistence.ONC_DIR),
+    )
+except FileNotFoundError:
+    warnings.warn(
+        "Module loaded with no ONC token; unable to query ONC server data."
+    )
 
 
 def download_ships(year: int, month: int, zone: int) -> None:
@@ -636,7 +642,7 @@ def _ais_labeler(
     pass
 
 
-def _truncate_equal_shapes(ser: pd.Series[np.ndarray]) -> pd.Series:
+def _truncate_equal_shapes(ser: pd.Series) -> pd.Series:
     """Truncate most of the data arrays and reject the others
 
     Using an outlier criterion for thresholding, reject all arrays of a
