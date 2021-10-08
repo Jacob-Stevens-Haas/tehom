@@ -118,7 +118,7 @@ def _ais_ships_columns():
 
 
 def init_onc_db(onc_db: Union[Path, str]) -> None:
-    """Initializes the local AIS record database, if it does not exist"""
+    """Initializes the local ONC record database, if it does not exist"""
     eng = _get_engine(onc_db)
     md = MetaData(eng)
     spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
