@@ -20,6 +20,7 @@ from typing import List, Tuple, Union, Set
 from pathlib import Path
 from functools import lru_cache
 
+import wget
 import pandas as pd
 import numpy as np
 import spans
@@ -32,6 +33,9 @@ from plotly.graph_objs._figure import Figure as PFigure
 from onc.onc import ONC
 
 from . import _persistence
+
+# from zipfile import ZipFile
+
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
 try:
@@ -57,6 +61,8 @@ def download_ships(year: int, month: int, zone: int) -> None:
         month (int): month to download
         zone (int): UTM zone to download
     """
+    _persistence._init_data_folder()
+    _persistence._init_ais_db(_persistence.AIS_DB)
     _persistence.init_data_folder()
     _persistence.init_ais_db(_persistence.AIS_DB)
     if (year, month, zone) not in _get_ais_downloads(_persistence.AIS_DB):
@@ -86,8 +92,13 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-    # morgan
-    pass
+    # JMSH: morgan. MWM, 07/23/2021: Done.
+    url = (
+        f"https://coast.noaa.gov/htdata/CMSP/AISDataHandler/2015/AIS_{year}_  "
+        f"                       {month}_{zone}.zip"
+    )
+    wget.download(url, _persistence.AIS_TEMP_DIR)
+    return _persistence.AIS_TEMP_DIR
 
 
 def _unzip_ais(zipfile: Path) -> Tuple[Path]:
@@ -100,7 +111,7 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
         tuple comprising the root of the unzip tree and the specific
         unzipped file of interest
     """
-    # morgan
+    # JMSH: morgan.
     pass
 
 
@@ -531,16 +542,19 @@ def _interpolate_and_group_ais(
     """Interpolate the lat/lon of ships to the specified time.
 
     Interpolation rules:
-        A ship has observations near the specified time, before and
+        C1: A ship has observations near the specified time, before and
             after: linear interpolation
-        A ship has one observation very near the specified time, either
+        C2: A ship has one observation very near the specified time, either
             before or after, but not both: constant interpolation
-        A ship does not meet above criteria: do not create an
+        C3: A ship does not meet above criteria: do not create an
             interpolated record for this ship at this time
 
     Note:
         What counts as "near" and "very near" is subject to change and
         may be refactored out into an interpolation parameters object
+
+        MWM: "near" = entries before and after the given time,
+             "very near" = one entry within a neighborhood of the given time
 
     Arguments:
         ais_df: ship records, including a basedatetime column.
@@ -549,7 +563,7 @@ def _interpolate_and_group_ais(
     Returns:
         The interpolated records, grouped by time.
     """
-    # Morgan, you'll have to first groupby mmsi (ship unique id) and
+    # 1.) groupby mmsi (ship unique id)
     # then apply an interpolation function for each timepoint.  The
     # interpolation function will take a dataframe and a timepoint,
     # and will determine, based on the nearest records before/after
@@ -557,6 +571,40 @@ def _interpolate_and_group_ais(
     #
     # While this function sounds like it takes a long time, its ok at
     # the outset to accomplish this somewhat inefficiently.
+    mmsi_set = ais_df.groupby["mmsi"]
+    for mmsi in mmsi_set.groups():
+        mmsi
+        # group = mmsi_set.get_group(mmsi)
+        # intrp = mmsi_set.apply(_ais_interpolator_dispatcher)
+    pass
+
+
+def _ais_interpolator_dispatcher(mmsi: pd.DataFrame, time, delta):
+    """Assess which case to apply from interpolation rules of
+    _interpolate_and_group_ais() docstring and dispatch to helper functions.
+
+    Arguments:
+        group_df: single-mmsi subset of ship records, with basedatetime column.
+        time: when to interpolate the ship positions.
+        delta: the "very near" threshold
+    """
+    time_col = mmsi["BaseDateTime"]
+    if all(time_col - time < 0):  # C1: time after whole record
+        pass
+    elif all(time_col - time > 0):  # C1: time before whole record
+        pass
+    else:  # C2 or C3
+        c2 = (time_col.rsub(time) >= -delta) & (time_col.rsub(time) <= delta)
+        if c2.sum() > 0:  # c2.sum() > 1 not impossible for arbitrary delta
+            # constant Interpolation
+            mmsi[c2]
+            pass
+        else:
+            # linear interpolation
+            # TODO: this assumes chronological ordering of masked subsets
+            # before = mmsi[time_col - time > 0].iloc[-1]
+            # after = mmsi[time_col - time < 0].iloc[0]
+            pass
     pass
 
 
