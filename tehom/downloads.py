@@ -14,12 +14,14 @@ With the datalib, you can:
 import logging
 import shutil
 import warnings
+import re
 
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Tuple, Union, Set
 from pathlib import Path
 from functools import lru_cache
+from zipfile import ZipFile
 
 import requests
 import pandas as pd
@@ -92,36 +94,24 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-
-    if month < 10:
-        month = f"0{month}"
-    else:
-        month = str(month)
+    month = f"{month:02}"
 
     if year > 2017:
         if zone < 10:
             zone = f"0{zone}"
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/AIS_{year}_{month}_{zone}.zip"
-        )
+        midfolder = ""
+        filename = f"AIS_{year}_{month}_{zone}.zip"
     elif year > 2014:
         if zone < 10:
             zone = f"0{zone}"
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/AIS_{year}_{month}_Zone{zone}.zip"
-        )
+        midfolder = ""
+        filename = f"AIS_{year}_{month}_Zone{zone}.zip"
     elif year == 2014:
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/{month}/Zone{zone}_{year}_{month}.zip"
-        )
+        midfolder = month + "/"
+        filename = f"Zone{zone}_{year}_{month}.zip"
     elif year > 2010:
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/{month}/Zone{zone}_{year}_{month}.gdb.zip"
-        )
+        midfolder = month + "/"
+        filename = f"Zone{zone}_{year}_{month}.gdb.zip"
     elif year < 2010:
         months = {
             "01": "January",
@@ -137,14 +127,17 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
             "11": "November",
             "12": "December",
         }
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/{year}/"
-            f"{month}_{months[month]}_{year}/Zone{zone}_{year}_{month}.zip"
-        )
+        midfolder = f"{month}_{months[month]}_{year}/"
+        filename = f"Zone{zone}_{year}_{month}.zip"
 
+    url = (
+        f"https://coast.noaa.gov/htdata/CMSP/AISDataHandler/{year}/"
+        + midfolder
+        + filename
+    )
     if isinstance(zone, int) and zone < 10:
         zone = f"0{zone}"
-    filepath = _persistence.AIS_TEMP_DIR / f"{year}_{month}_{zone}.zip"
+    filepath = _persistence.AIS_TEMP_DIR / filename
     if not filepath.exists():
         logger.info(f"Downloading data for {year} {month}, Zone {zone}...")
         r = requests.get(url)
@@ -159,14 +152,17 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
     """Unzips the temporary zipfile
 
     Arguments:
-        zipfile: file to unzip
+        zipfile: directory to unzip.  Must obey marinecadastre's' layout
 
     Returns:
         tuple comprising the root of the unzip tree and the specific
         unzipped file of interest
     """
-    # JMSH: morgan.
-    pass
+    with ZipFile(f"{zipfile}", "r") as zipObj:
+        zipObj.extractall(_persistence.AIS_TEMP_DIR)
+    zip_root = _persistence.AIS_TEMP_DIR / "AIS_ASCII_by_UTM_Month"
+    year = re.search("[0-9]{4}", zipfile.stem).group(0)
+    return zip_root, zip_root / year / (zipfile.stem + ".csv")
 
 
 def _get_ais_downloads(ais_db: Path) -> Set:
@@ -305,9 +301,9 @@ def show_available_data(
         begin: start time to display
         end: end time to display
         bottomleft: Latitude, longitude tuple.  Only
-            include hydrophones to the northeast of this point.
+            include hydrophones north and east of this point.
         topright: Latitude, longitude tuple.  Only
-            include hydrophones to the southwest of this point.
+            include hydrophones south and west of this point.
         style: Either 'map' for a geographic map with hydrophones
             identified or 'bar' for a bar chart showing overlapping
             downloads.
