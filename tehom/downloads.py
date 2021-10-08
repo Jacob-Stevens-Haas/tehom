@@ -11,7 +11,9 @@ With the datalib, you can:
 * Show the data either available for download or already downloaded
 * Sample downloaded data into a labeled format, ready for ``model.fit``
 """
+import logging
 import shutil
+import warnings
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -20,6 +22,7 @@ from pathlib import Path
 from functools import lru_cache
 from zipfile import ZipFile
 
+import requests
 import pandas as pd
 import numpy as np
 import spans
@@ -33,12 +36,19 @@ from onc.onc import ONC
 
 from . import _persistence
 
+logger = logging.getLogger(__name__)
+
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-onc = ONC(
-    _persistence.load_user_token(),
-    showInfo=True,
-    outPath=str(_persistence.ONC_DIR),
-)
+try:
+    onc = ONC(
+        _persistence.load_user_token(),
+        showInfo=True,
+        outPath=str(_persistence.ONC_DIR),
+    )
+except FileNotFoundError:
+    warnings.warn(
+        "Module loaded with no ONC token; unable to query ONC server data."
+    )
 
 
 def download_ships(year: int, month: int, zone: int) -> None:
@@ -52,6 +62,8 @@ def download_ships(year: int, month: int, zone: int) -> None:
         month (int): month to download
         zone (int): UTM zone to download
     """
+    _persistence._init_data_folder()
+    _persistence._init_ais_db(_persistence.AIS_DB)
     _persistence.init_data_folder()
     _persistence.init_ais_db(_persistence.AIS_DB)
     if (year, month, zone) not in _get_ais_downloads(_persistence.AIS_DB):
@@ -81,8 +93,67 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-    # morgan
-    pass
+
+    if month < 10:
+        month = f"0{month}"
+    else:
+        month = str(month)
+
+    if year > 2017:
+        if zone < 10:
+            zone = f"0{zone}"
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/AIS_{year}_{month}_{zone}.zip"
+        )
+    elif year > 2014:
+        if zone < 10:
+            zone = f"0{zone}"
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/AIS_{year}_{month}_Zone{zone}.zip"
+        )
+    elif year == 2014:
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/{month}/Zone{zone}_{year}_{month}.zip"
+        )
+    elif year > 2010:
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+            f"{year}/{month}/Zone{zone}_{year}_{month}.gdb.zip"
+        )
+    elif year < 2010:
+        months = {
+            "01": "January",
+            "02": "February",
+            "03": "March",
+            "04": "April",
+            "05": "May",
+            "06": "June",
+            "07": "July",
+            "08": "August",
+            "09": "September",
+            "10": "October",
+            "11": "November",
+            "12": "December",
+        }
+        url = (
+            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/{year}/"
+            f"{month}_{months[month]}_{year}/Zone{zone}_{year}_{month}.zip"
+        )
+
+    if isinstance(zone, int) and zone < 10:
+        zone = f"0{zone}"
+    filepath = _persistence.AIS_TEMP_DIR / f"{year}_{month}_{zone}.zip"
+    if not filepath.exists():
+        logger.info(f"Downloading data for {year} {month}, Zone {zone}...")
+        r = requests.get(url)
+        with open(filepath, "wb") as f:
+            f.write(r.content)
+    else:
+        logger.info(f"{filepath} already exists.")
+    return filepath
 
 
 def _unzip_ais(zipfile: Path) -> Tuple[Path]:
@@ -572,7 +643,7 @@ def _ais_labeler(
     pass
 
 
-def _truncate_equal_shapes(ser: pd.Series[np.ndarray]) -> pd.Series:
+def _truncate_equal_shapes(ser: pd.Series) -> pd.Series:
     """Truncate most of the data arrays and reject the others
 
     Using an outlier criterion for thresholding, reject all arrays of a
