@@ -44,7 +44,7 @@ def test_storage():
     AIS_DB = STORAGE / "ais.db"
     ONC_DB = STORAGE / "onc.db"
     ONC_DIR = STORAGE / "onc"
-    AIS_TEMP_DIR = STORAGE / "onc"
+    AIS_TEMP_DIR = STORAGE / "ais"
     LOCAL_TOKEN_PATH = STORAGE / "token"
 
     yield None
