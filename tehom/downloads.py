@@ -14,6 +14,7 @@ With the datalib, you can:
 import logging
 import shutil
 import warnings
+import re
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -151,7 +152,7 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
     """Unzips the temporary zipfile
 
     Arguments:
-        zipfile: file to unzip
+        zipfile: directory to unzip.  Must obey marinecadastre's' layout
 
     Returns:
         tuple comprising the root of the unzip tree and the specific
@@ -159,7 +160,9 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
     """
     with ZipFile(f"{zipfile}", "r") as zipObj:
         zipObj.extractall(_persistence.AIS_TEMP_DIR)
-    return _persistence.AIS_TEMP_DIR, zipfile.parts[-1]
+    zip_root = _persistence.AIS_TEMP_DIR / "AIS_ASCII_by_UTM_Month"
+    year = re.search("[0-9]{4}", zipfile.stem).group(0)
+    return zip_root, zip_root / year / (zipfile.stem + ".csv")
 
 
 def _get_ais_downloads(ais_db: Path) -> Set:
