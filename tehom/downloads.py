@@ -92,7 +92,6 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-    # MWM, 07/23/2021: Done; predownload logic parses filename
 
     if month < 10:
         month = f"0{month}"

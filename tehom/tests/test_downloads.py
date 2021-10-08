@@ -3,7 +3,7 @@ import pytest
 from tehom import downloads
 
 
-@pytest.mark("slow")
+@pytest.mark.slow
 def test_download_ais_to_temp(declare_stateful):
     year = 2014
     month = 1
