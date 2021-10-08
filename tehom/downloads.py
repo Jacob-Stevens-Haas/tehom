@@ -93,36 +93,24 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
     Returns:
         location of download result
     """
-
-    if month < 10:
-        month = f"0{month}"
-    else:
-        month = str(month)
+    month = f"{month:02}"
 
     if year > 2017:
         if zone < 10:
             zone = f"0{zone}"
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/AIS_{year}_{month}_{zone}.zip"
-        )
+        midfolder = ""
+        filename = f"AIS_{year}_{month}_{zone}.zip"
     elif year > 2014:
         if zone < 10:
             zone = f"0{zone}"
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/AIS_{year}_{month}_Zone{zone}.zip"
-        )
+        midfolder = ""
+        filename = f"AIS_{year}_{month}_Zone{zone}.zip"
     elif year == 2014:
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/{month}/Zone{zone}_{year}_{month}.zip"
-        )
+        midfolder = month + "/"
+        filename = f"Zone{zone}_{year}_{month}.zip"
     elif year > 2010:
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
-            f"{year}/{month}/Zone{zone}_{year}_{month}.gdb.zip"
-        )
+        midfolder = month + "/"
+        filename = f"Zone{zone}_{year}_{month}.gdb.zip"
     elif year < 2010:
         months = {
             "01": "January",
@@ -138,14 +126,17 @@ def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
             "11": "November",
             "12": "December",
         }
-        url = (
-            "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/{year}/"
-            f"{month}_{months[month]}_{year}/Zone{zone}_{year}_{month}.zip"
-        )
+        midfolder = f"{month}_{months[month]}_{year}/"
+        filename = f"Zone{zone}_{year}_{month}.zip"
 
+    url = (
+        f"https://coast.noaa.gov/htdata/CMSP/AISDataHandler/{year}/"
+        + midfolder
+        + filename
+    )
     if isinstance(zone, int) and zone < 10:
         zone = f"0{zone}"
-    filepath = _persistence.AIS_TEMP_DIR / f"{year}_{month}_{zone}.zip"
+    filepath = _persistence.AIS_TEMP_DIR / filename
     if not filepath.exists():
         logger.info(f"Downloading data for {year} {month}, Zone {zone}...")
         r = requests.get(url)
