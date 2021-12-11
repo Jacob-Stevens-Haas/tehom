@@ -15,6 +15,7 @@ from sqlalchemy import (
     MetaData,
     Index,
     select,
+    insert,
 )
 
 STORAGE = Path(__file__).parent / "storage"
@@ -175,7 +176,7 @@ def load_user_token() -> str:
         return fh.readline()
 
 
-def _get_ais_downloads(ais_db: Union[Path, str]) -> List[Tuple]:
+def get_ais_downloads(ais_db: Union[Path, str]) -> List[Tuple]:
     """Identify which AIS year-month-zone combinations have already been
     added to the AIS database
 
@@ -191,3 +192,29 @@ def _get_ais_downloads(ais_db: Union[Path, str]) -> List[Tuple]:
     meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
     stmt = select(meta_table)
     return eng.execute(stmt).fetchall()
+
+
+def update_ais_downloads(year, month, zone, ais_db):
+    """Updates the AIS database to track downloads
+
+    Arguments:
+        year (int): year to download
+        month (int): month to download
+        zone (int): UTM zone to download
+        ais_db: path to the database of AIS records
+    """
+    eng = _get_engine(ais_db)
+    md = MetaData(eng)
+    meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
+    stmt = insert(meta_table).values(year=year, month=month, zone=zone)
+    return eng.execute(stmt)
+
+
+def update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
+    """Updates the ONC database to track downloads
+
+    Arguments:
+        onc_db: database to track ONC downloads
+        files: list of files downloaded to add to the tracker
+    """
+    pass

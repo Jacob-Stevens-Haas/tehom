@@ -66,7 +66,7 @@ def download_ships(year: int, month: int, zone: int) -> None:
     ais_db = _persistence.AIS_DB
     _persistence.init_data_folder()
     _persistence.init_ais_db(ais_db)
-    if (year, month, zone) not in _persistence._get_ais_downloads(ais_db):
+    if (year, month, zone) not in _persistence.get_ais_downloads(ais_db):
         zipfile_path = _download_ais_to_temp(year, month, zone)
         unzipped_tree, unzipped_target = _unzip_ais(zipfile_path)
         failure = _load_ais_csv_to_db(unzipped_target, ais_db)
@@ -231,17 +231,7 @@ def download_acoustics(
                 for download in downloads
                 if download["status"] == "complete" and download["downloaded"]
             ]
-    _update_onc_tracker(_persistence.ONC_DB, files)
-
-
-def _update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
-    """Updates the ONC database to track downloads
-
-    Arguments:
-        onc_db: database to track ONC downloads
-        files: list of files downloaded to add to the tracker
-    """
-    pass
+    _persistence.update_onc_tracker(_persistence.ONC_DB, files)
 
 
 def _get_onc_downloads(onc_db: Path) -> Set:
@@ -317,7 +307,7 @@ def show_available_data(
     # is date.  When a single hydrophone has multiple deployments,
     # it's row should have multiple bars.  Behind the hydrophone bars,
     # there should be a different-colored bar chart for AIS data
-    # availability, built off of _persistence._get_ais_downloads().
+    # availability, built off of _persistence.get_ais_downloads().
     #
     # Once ONC data is downloaded, depending on the format, it should
     # have differently-colored bars overlapping the data-availability
