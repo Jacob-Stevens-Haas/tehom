@@ -100,13 +100,14 @@ def _ais_meta_columns():
 def _ais_ships_columns():
     return [
         Column("mmsi", Integer, primary_key=True),
-        Column("BaseDateTime", String, primary_key=True),
+        Column("basedatetime", String, primary_key=True),
         Column("lat", Float),
         Column("lon", Float),
         Column("sog", Float),
         Column("cog", Float),
         Column("heading", Float),
         Column("vesselname", String),
+        Column("imo", String),
         Column("callsign", String),
         Column("vesseltype", Integer),
         Column("status", String),
@@ -114,7 +115,7 @@ def _ais_ships_columns():
         Column("width", Float),
         Column("draft", Float),
         Column("cargo", Integer),
-        Index("idx_time_lat_lon", "BaseDateTime", "lat", "lon"),
+        Index("idx_time_lat_lon", "basedatetime", "lat", "lon"),
     ]
 
 
