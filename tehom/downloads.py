@@ -13,6 +13,7 @@ With the datalib, you can:
 """
 import logging
 import shutil
+import subprocess
 import warnings
 import re
 
@@ -58,7 +59,7 @@ def download_ships(year: int, month: int, zone: int) -> None:
     csv files by year, month, and UTM zone
     (wikipedia the Universal_Transverse_Mercator_coordinate_system)
 
-    Parameters:
+    Arguments:
         year (int): year to download
         month (int): month to download
         zone (int): UTM zone to download
@@ -69,9 +70,11 @@ def download_ships(year: int, month: int, zone: int) -> None:
     if (year, month, zone) not in _persistence.get_ais_downloads(ais_db):
         zipfile_path = _download_ais_to_temp(year, month, zone)
         unzipped_tree, unzipped_target = _unzip_ais(zipfile_path)
-        failure = _load_ais_csv_to_db(unzipped_target, ais_db)
-        if not failure:
+        returncode = _load_ais_csv_to_db(unzipped_target, ais_db).returncode
+        if not returncode:
             shutil.rmtree(unzipped_tree)
+            zipfile_path.unlink()
+            _persistence.update_ais_downloads(year, month, zone, ais_db)
         else:
             raise RuntimeError(
                 "Failed to load data to database; check format of"
@@ -79,7 +82,6 @@ def download_ships(year: int, month: int, zone: int) -> None:
             )
     else:
         print(f"AIS data already stored for {year}, {month} zone {zone}.")
-    pass
 
 
 def _download_ais_to_temp(year: int, month: int, zone: int) -> Path:
@@ -164,7 +166,7 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
     return zip_root, zip_root / year / (zipfile.stem + ".csv")
 
 
-def _load_ais_csv_to_db(csvfile: Path, ais_db: Path) -> int:
+def _load_ais_csv_to_db(csv_file: Path, ais_db: Path) -> int:
     """Loads the AIS records from the given file into the appropriate
     table in ais_db and updates the metadata table in ais_db
 
@@ -175,7 +177,27 @@ def _load_ais_csv_to_db(csvfile: Path, ais_db: Path) -> int:
     Returns:
         Return value from the sqlite subprocess
     """
-    pass
+    ais_db = Path(ais_db).resolve()
+    csv_file = Path(csv_file).resolve()
+    with open(csv_file, "r") as source:
+        source.readline()
+        headless_file = str(csv_file) + "_nohead"
+        with open(headless_file, "w") as target:
+            shutil.copyfileobj(source, target)
+
+    result = subprocess.run(
+        [
+            "sqlite3",
+            str(ais_db),
+            "-cmd",
+            ".mode csv",
+            ".import "
+            + str(headless_file).replace("\\", "\\\\")  # make it Windows-safe
+            + " ships",
+        ],
+        capture_output=True,
+    )
+    return result
 
 
 def download_acoustics(
