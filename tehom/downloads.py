@@ -69,7 +69,7 @@ def download_ships(year: int, month: int, zone: int) -> None:
     if (year, month, zone) not in _persistence._get_ais_downloads(ais_db):
         zipfile_path = _download_ais_to_temp(year, month, zone)
         unzipped_tree, unzipped_target = _unzip_ais(zipfile_path)
-        failure = _load_ais_csv_to_db(unzipped_target)
+        failure = _load_ais_csv_to_db(unzipped_target, ais_db)
         if not failure:
             shutil.rmtree(unzipped_tree)
         else:
