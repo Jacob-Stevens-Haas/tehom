@@ -1,6 +1,6 @@
 """Common variables and functions that may be imported by any module"""
 from contextlib import contextmanager
-from typing import Union
+from typing import Union, List, Tuple
 from pathlib import Path
 
 import sqlalchemy
@@ -14,6 +14,7 @@ from sqlalchemy import (
     String,
     MetaData,
     Index,
+    select,
 )
 
 STORAGE = Path(__file__).parent / "storage"
@@ -171,3 +172,21 @@ def load_user_token() -> str:
     """Load saved token"""
     with open(LOCAL_TOKEN_PATH, "r") as fh:
         return fh.readline()
+
+
+def _get_ais_downloads(ais_db: Union[Path, str]) -> List[Tuple]:
+    """Identify which AIS year-month-zone combinations have already been
+    added to the AIS database
+
+    Arguments:
+        ais_db: path to the database of AIS records
+
+    Returns:
+        set of records, each arragned as a tuple comprising (year,
+        month, zone)
+    """
+    eng = _get_engine(ais_db)
+    md = MetaData(eng)
+    meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
+    stmt = select(meta_table)
+    return eng.execute(stmt).fetchall()

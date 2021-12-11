@@ -63,11 +63,10 @@ def download_ships(year: int, month: int, zone: int) -> None:
         month (int): month to download
         zone (int): UTM zone to download
     """
-    _persistence._init_data_folder()
-    _persistence._init_ais_db(_persistence.AIS_DB)
+    ais_db = _persistence.AIS_DB
     _persistence.init_data_folder()
-    _persistence.init_ais_db(_persistence.AIS_DB)
-    if (year, month, zone) not in _get_ais_downloads(_persistence.AIS_DB):
+    _persistence.init_ais_db(ais_db)
+    if (year, month, zone) not in _persistence._get_ais_downloads(ais_db):
         zipfile_path = _download_ais_to_temp(year, month, zone)
         unzipped_tree, unzipped_target = _unzip_ais(zipfile_path)
         failure = _load_ais_csv_to_db(unzipped_target)
@@ -163,20 +162,6 @@ def _unzip_ais(zipfile: Path) -> Tuple[Path]:
     zip_root = _persistence.AIS_TEMP_DIR / "AIS_ASCII_by_UTM_Month"
     year = re.search("[0-9]{4}", zipfile.stem).group(0)
     return zip_root, zip_root / year / (zipfile.stem + ".csv")
-
-
-def _get_ais_downloads(ais_db: Path) -> Set:
-    """Identify which AIS year-month-zone combinations have already been
-    added to the AIS database
-
-    Arguments:
-        ais_db: path to the database of AIS records
-
-    Returns:
-        set of records, each arragned as a tuple comprising (year,
-        month, zone)
-    """
-    pass
 
 
 def _load_ais_csv_to_db(csvfile: Path, ais_db: Path) -> int:
@@ -332,7 +317,7 @@ def show_available_data(
     # is date.  When a single hydrophone has multiple deployments,
     # it's row should have multiple bars.  Behind the hydrophone bars,
     # there should be a different-colored bar chart for AIS data
-    # availability, built off of _get_ais_downloads().
+    # availability, built off of _persistence._get_ais_downloads().
     #
     # Once ONC data is downloaded, depending on the format, it should
     # have differently-colored bars overlapping the data-availability
