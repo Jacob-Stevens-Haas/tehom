@@ -17,11 +17,26 @@ save_token_parser.add_argument("-f", "--force", type=bool, default=False)
 
 
 download_ships_parser = argparse.ArgumentParser(
-    description="Sownload ship tracking data or hydrophone acoustics"
+    description="Download ship tracking data or hydrophone acoustics"
 )
 download_ships_parser.add_argument("year", type=int)
 download_ships_parser.add_argument("month", type=int)
 download_ships_parser.add_argument("zone", type=int)
+
+
+download_acoustics_parser = argparse.ArgumentParser(
+    description="Download ship tracking data or hydrophone acoustics"
+)
+
+
+def _list_or_str(h_phones):
+    return h_phones.split(",")
+
+
+download_acoustics_parser.add_argument("hydrophones", type=_list_or_str)
+download_acoustics_parser.add_argument("begin")
+download_acoustics_parser.add_argument("end")
+download_acoustics_parser.add_argument("extension")
 
 
 def __main__():
@@ -31,6 +46,9 @@ def __main__():
         subcommand = save_user_token
     elif subcommand == "ships":
         parser = download_ships_parser
+        subcommand = download_ships
+    elif subcommand == "sound":
+        parser = download_acoustics_parser
         subcommand = download_ships
     else:
         raise ValueError(f"No subcommand named '{subcommand}'")
