@@ -334,7 +334,10 @@ def _get_onc_downloads(onc_db: Path) -> Set:
         onc_db: path to the database of ONC records
 
     Returns:
-        set of records, each arragned as a tuple comprising (hydrophone,
-        begin, end, extension)
+        DataFrame of records for each hydrophone's downloaded data range
+        for each format of download.
     """
-    pass
+    eng = _get_engine(onc_db)
+    md = MetaData(eng)
+    spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
+    return pd.read_sql(select(spans_table), eng)
