@@ -49,3 +49,9 @@ def test_integration_temps_removed(complete_ship_download):
     files = _persistence.AIS_TEMP_DIR.iterdir()
     newitem = next(files, None)
     assert newitem is None
+
+
+def test_acoustic_files_downloaded(complete_acoustic_download):
+    onc_folder = _persistence.ONC_DIR
+    files = (file.name for file in onc_folder.iterdir())
+    assert "ICLISTENHF1252_20160101T115623.000Z.wav" in files

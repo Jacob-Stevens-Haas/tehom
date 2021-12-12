@@ -1,3 +1,9 @@
+import pandas as pd
+import pytest
+
+from spans import datetimerange
+from sqlalchemy import Table, MetaData, select, and_
+
 from tehom import _persistence
 
 
@@ -36,3 +42,61 @@ def test_onc_init(declare_stateful):
     stmt = tb.select()
     result = stmt.execute().fetchall()
     assert len(result) == 1
+
+
+@pytest.fixture
+def default_engine():
+    onc_db = _persistence.ONC_DB
+    yield _persistence._get_engine(onc_db)
+
+
+@pytest.fixture
+def onc_files_table(default_engine):
+    md = MetaData(default_engine)
+    files_table = Table(
+        "files", md, *_persistence._onc_files_columns()
+    )  # noqa: F841
+    yield files_table
+
+
+@pytest.fixture
+def onc_spans_table(default_engine):
+    md = MetaData(default_engine)
+    spans_table = Table(
+        "spans", md, *_persistence._onc_spans_columns()
+    )  # noqa: F841
+    yield spans_table
+
+
+def test_files_table_updated(
+    complete_acoustic_download, default_engine, onc_files_table
+):
+    stmt = select(onc_files_table).where(
+        and_(
+            onc_files_table.c.hydrophone == "ICLISTENHF1252",
+            onc_files_table.c.format == "wav",
+            onc_files_table.c.start == "2016-01-01 11:56:23.000000",
+            onc_files_table.c.filename
+            == "ICLISTENHF1252_20160101T115623.000Z.wav",
+        )
+    )
+    results = default_engine.execute(stmt).fetchone()
+    assert results
+
+
+def test_spans_table_updated(
+    complete_acoustic_download, default_engine, onc_spans_table
+):
+    stmt = select(onc_spans_table.c.start, onc_spans_table.c.finish).where(
+        and_(
+            onc_files_table.c.hydrophone == "ICLISTENHF1252",
+            onc_files_table.c.format == "wav",
+        )
+    )
+    spans_df = pd.read_sql(stmt, default_engine)
+    ranges = _persistence.datetimerangeset_from_df(spans_df)
+    expected = datetimerange(
+        pd.to_datetime("2016-01-01 11:56:23.000000"),
+        pd.to_datetime("2016-01-01 12:01:23.000000"),
+    )
+    assert expected in ranges
