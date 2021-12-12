@@ -2,12 +2,14 @@
 import warnings
 
 from contextlib import contextmanager
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Set
 from pathlib import Path
 
+import pandas as pd
 import sqlalchemy
 
 from onc.onc import ONC
+from spans import datetimerange, datetimerangeset
 from sqlalchemy import (
     create_engine,
     Table,
@@ -19,6 +21,8 @@ from sqlalchemy import (
     Index,
     select,
     insert,
+    delete,
+    and_,
 )
 
 STORAGE = Path(__file__).parent / "storage"
@@ -233,11 +237,104 @@ def update_ais_downloads(year, month, zone, ais_db):
     return eng.execute(stmt)
 
 
-def update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
+def update_onc_tracker(onc_db: Path, files: List[str], format) -> None:
     """Updates the ONC database to track downloads
 
     Arguments:
         onc_db: database to track ONC downloads
         files: list of files downloaded to add to the tracker
+    """
+
+    def _extract_info_from_filename(file: str) -> Tuple:
+        pieces = file.split("_", 1)
+        hydrophone = pieces[0]
+        start = pieces[1].rsplit(".", 1)[0]
+        return (hydrophone, start, file)
+
+    file_tuples = [
+        _extract_info_from_filename(file)
+        for file in files
+        if file[-3:] == format
+    ]
+    file_df = pd.DataFrame(
+        data=file_tuples, columns=["hydrophone", "start", "filename"]
+    )
+    file_df["format"] = format
+    file_df["duration"] = 300000
+
+    eng = _get_engine(onc_db)
+    file_df.to_sql("files", eng, if_exists="append", index=False)
+
+    file_df["start"] = pd.to_datetime(file_df["start"])
+    duration = file_df["duration"].apply(lambda d: pd.Timedelta(d, "ms"))
+    file_df["finish"] = file_df["start"] + duration
+
+    md = MetaData(eng)
+    spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
+    hphone_gb = file_df.groupby("hydrophone")
+    for hphone, h_df in hphone_gb:
+        _record_downloaded_intervals_onc(
+            hphone, h_df, format, spans_table, eng
+        )
+
+
+def _record_downloaded_intervals_onc(
+    hphone: str,
+    h_df: pd.DataFrame,
+    format: str,
+    spans_table: Table,
+    eng: sqlalchemy.engine.base.Engine,
+) -> None:
+    """Calculate and update intervals where acoustic data is available.
+
+    Arguments:
+        hphone: the hydrophone concerned
+        h_df: DataFrame of individual files added
+        format: file format concerned
+        spans_table: Table object for existing calculated intervals
+        eng: capable of generating connections for CRUD
+    """
+    and_clause = and_(
+        spans_table.c.hydrophone == hphone,
+        spans_table.c.format == format,
+    )
+    stmt = select(spans_table.c.start, spans_table.c.finish).where(and_clause)
+    spans_df = pd.read_sql(stmt, eng)
+
+    old_ranges = datetimerangeset_from_df(spans_df)
+    new_ranges = datetimerangeset_from_df(h_df).union(old_ranges)
+    del_old_stmt = delete(spans_table).where(and_clause)
+    new_df = pd.DataFrame(
+        [(r.lower, r.upper) for r in new_ranges], columns=["start", "finish"]
+    )
+    new_df["hydrophone"] = hphone
+    new_df["format"] = format
+
+    with eng.begin() as conn:
+        conn.execute(del_old_stmt)
+        new_df.to_sql("spans", conn, if_exists="append", index=False)
+
+
+def datetimerangeset_from_df(df):
+    if df.empty:
+        return datetimerangeset([])
+    df["start"] = pd.to_datetime(df["start"])
+    df["finish"] = pd.to_datetime(df["finish"])
+    ranges = df.loc[:, ["start", "finish"]].apply(
+        lambda row: datetimerange(row["start"], row["finish"]), axis=1
+    )
+    return datetimerangeset(ranges)
+
+
+def _get_onc_downloads(onc_db: Path) -> Set:
+    """Identify which ONC hydrophone data ranges have been downloaded
+    and tracked in the ONC database.
+
+    Arguments:
+        onc_db: path to the database of ONC records
+
+    Returns:
+        set of records, each arragned as a tuple comprising (hydrophone,
+        begin, end, extension)
     """
     pass

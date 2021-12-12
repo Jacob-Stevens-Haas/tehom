@@ -216,8 +216,8 @@ def download_acoustics(
         extension (str): The file type to download the acoustics.  Can
             be mp3, wav, png, or mat
     """
-    _persistence._init_data_folder()
-    _persistence._init_onc_db(_persistence.ONC_DB)
+    _persistence.init_data_folder()
+    _persistence.init_onc_db(_persistence.ONC_DB)
 
     def code_from_extension(ext):
         if ext.lower() in ["mp3", "wav", "flac"]:
@@ -247,21 +247,8 @@ def download_acoustics(
                 for download in downloads
                 if download["status"] == "complete" and download["downloaded"]
             ]
-    _persistence.update_onc_tracker(_persistence.ONC_DB, files)
-
-
-def _get_onc_downloads(onc_db: Path) -> Set:
-    """Identify which ONC hydrophone data ranges have been downloaded
-    and tracked in the ONC database.
-
-    Arguments:
-        onc_db: path to the database of ONC records
-
-    Returns:
-        set of records, each arragned as a tuple comprising (hydrophone,
-        begin, end, extension)
-    """
-    pass
+    if files:
+        _persistence.update_onc_tracker(_persistence.ONC_DB, files, extension)
 
 
 @lru_cache(maxsize=1)
@@ -298,7 +285,7 @@ def get_audio_availability(
 
 def _onc_iso_fmt(dt: Union[Timestamp, str]) -> str:
     """Formats the datetime according to how ONC needs it in requests."""
-    dt = np.datetime64(dt, "ms")
+    dt = np.datetime64(pd.to_datetime(dt), "ms")
     return np.datetime_as_string(dt, timezone="UTC")
 
 
