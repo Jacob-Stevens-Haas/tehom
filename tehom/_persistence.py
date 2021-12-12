@@ -1,10 +1,13 @@
 """Common variables and functions that may be imported by any module"""
+import warnings
+
 from contextlib import contextmanager
 from typing import Union, List, Tuple
 from pathlib import Path
 
 import sqlalchemy
 
+from onc.onc import ONC
 from sqlalchemy import (
     create_engine,
     Table,
@@ -24,6 +27,24 @@ ONC_DB = STORAGE / "onc.db"
 ONC_DIR = STORAGE / "onc"
 AIS_TEMP_DIR = STORAGE / "ais"
 LOCAL_TOKEN_PATH = STORAGE / "token"
+
+
+def load_user_token() -> str:
+    """Load saved token"""
+    with open(LOCAL_TOKEN_PATH, "r") as fh:
+        return fh.readline()
+
+
+try:
+    onc_session = ONC(
+        load_user_token(),
+        showInfo=True,
+        outPath=str(ONC_DIR),
+    )
+except FileNotFoundError:
+    warnings.warn(
+        "Module loaded with no ONC token; unable to query ONC server data."
+    )
 
 
 @contextmanager
@@ -48,6 +69,10 @@ def test_storage():
     ONC_DIR = STORAGE / "onc"
     AIS_TEMP_DIR = STORAGE / "ais"
     LOCAL_TOKEN_PATH = STORAGE / "token"
+    try:
+        onc_session.outPath = str(ONC_DIR)
+    except NameError:
+        pass
 
     yield None
 
@@ -57,6 +82,10 @@ def test_storage():
     ONC_DIR = temp_onc_dir
     AIS_TEMP_DIR = temp_ais_temp_dir
     LOCAL_TOKEN_PATH = temp_token_path
+    try:
+        onc_session.outPath = str(ONC_DIR)
+    except NameError:
+        pass
 
 
 def init_data_folder():
@@ -168,12 +197,6 @@ def save_user_token(token: Union[Path, str], force: bool = False) -> None:
             token = fh.readline().strip()
     with open(LOCAL_TOKEN_PATH, "w") as fh:
         fh.write(token)
-
-
-def load_user_token() -> str:
-    """Load saved token"""
-    with open(LOCAL_TOKEN_PATH, "r") as fh:
-        return fh.readline()
 
 
 def get_ais_downloads(ais_db: Union[Path, str]) -> List[Tuple]:

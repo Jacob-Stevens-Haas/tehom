@@ -14,7 +14,6 @@ With the datalib, you can:
 import logging
 import shutil
 import subprocess
-import warnings
 import re
 
 from dataclasses import dataclass
@@ -35,23 +34,17 @@ from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas.core.frame import DataFrame
 from plotly.graph_objs._figure import Figure as PFigure
-from onc.onc import ONC
 
 from . import _persistence
 
 logger = logging.getLogger(__name__)
 
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+
 try:
-    onc = ONC(
-        _persistence.load_user_token(),
-        showInfo=True,
-        outPath=str(_persistence.ONC_DIR),
-    )
-except FileNotFoundError:
-    warnings.warn(
-        "Module loaded with no ONC token; unable to query ONC server data."
-    )
+    onc = _persistence.onc_session
+except NameError:
+    pass
 
 
 def download_ships(year: int, month: int, zone: int) -> None:
