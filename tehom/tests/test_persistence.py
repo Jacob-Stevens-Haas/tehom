@@ -68,6 +68,7 @@ def onc_spans_table(default_engine):
     yield spans_table
 
 
+@pytest.mark.slow
 def test_files_table_updated(
     complete_acoustic_download, default_engine, onc_files_table
 ):
@@ -75,7 +76,7 @@ def test_files_table_updated(
         and_(
             onc_files_table.c.hydrophone == "ICLISTENHF1252",
             onc_files_table.c.format == "wav",
-            onc_files_table.c.start == "2016-01-01 11:56:23.000000",
+            onc_files_table.c.start == "20160101T115623.000Z",
             onc_files_table.c.filename
             == "ICLISTENHF1252_20160101T115623.000Z.wav",
         )
@@ -84,13 +85,14 @@ def test_files_table_updated(
     assert results
 
 
+@pytest.mark.slow
 def test_spans_table_updated(
     complete_acoustic_download, default_engine, onc_spans_table
 ):
     stmt = select(onc_spans_table.c.start, onc_spans_table.c.finish).where(
         and_(
-            onc_files_table.c.hydrophone == "ICLISTENHF1252",
-            onc_files_table.c.format == "wav",
+            onc_spans_table.c.hydrophone == "ICLISTENHF1252",
+            onc_spans_table.c.format == "wav",
         )
     )
     spans_df = pd.read_sql(stmt, default_engine)

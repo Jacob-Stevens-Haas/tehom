@@ -51,6 +51,7 @@ def test_integration_temps_removed(complete_ship_download):
     assert newitem is None
 
 
+@pytest.mark.slow
 def test_acoustic_files_downloaded(complete_acoustic_download):
     onc_folder = _persistence.ONC_DIR
     files = (file.name for file in onc_folder.iterdir())
