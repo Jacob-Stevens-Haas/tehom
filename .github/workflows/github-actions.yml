@@ -29,9 +29,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
-          python -m pip install coveralls
           python setup.py install
           pre-commit install
+          echo ${{ secrets.ONC_TOKEN }} > tehom/storage/token
+          cat tehom/storage/token
       - name: precommit
         run: |
           pre-commit run
@@ -41,9 +42,3 @@ jobs:
       - name: Coverage report
         run: |
           python -m coverage report
-      # - name: Publish results to coveralls
-      #   env:
-      #     COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-      #     GITHUB_TOKEN: $COVERALLS_REPO_TOKEN
-      #   run: |
-      #     coveralls -v --service=github-actions
