@@ -28,6 +28,7 @@ import requests
 import pandas as pd
 import numpy as np
 import spans
+import pytz
 
 from matplotlib.figure import Figure as MFigure
 from pandas._libs.tslibs.timedeltas import Timedelta
@@ -273,7 +274,28 @@ def _get_onc_downloads(onc_db: Path) -> Set:
 @lru_cache(maxsize=1)
 def _get_deployments():
     hphones = onc.getDeployments(filters={"deviceCategoryCode": "HYDROPHONE"})
+    hphones["begin"] = pd.to_datetime(hphones["begin"])
+    hphones["end"] = pd.to_datetime(hphones["end"])
     return pd.DataFrame(hphones)
+
+
+def get_audio_availability(
+    start: Union[Timestamp, str], finish: Union[Timestamp, str]
+) -> DataFrame:
+    hphones = _get_deployments()
+
+    def localize_or_convert(time: pd.Timestamp):
+        if time.tz is None:
+            return time.tz_localize("UTC")
+        elif time.tz is not pytz.UTC:
+            return time.tz_convert("UTC")
+        return time
+
+    start = localize_or_convert(pd.to_datetime(start))
+    finish = localize_or_convert(pd.to_datetime(finish))
+    after_start = hphones["begin"] < finish
+    before_finish = hphones["end"] > start
+    return hphones[after_start & before_finish]
 
 
 def _onc_iso_fmt(dt: Union[Timestamp, str]) -> str:
