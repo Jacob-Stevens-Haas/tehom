@@ -3,6 +3,7 @@ import argparse
 
 from ._version import get_versions
 from ._persistence import save_user_token
+from .downloads import download_ships
 
 __version__ = get_versions()["version"]
 del get_versions
@@ -15,12 +16,23 @@ save_token_parser.add_argument("token")
 save_token_parser.add_argument("-f", "--force", type=bool, default=False)
 
 
+download_ships_parser = argparse.ArgumentParser(
+    description="Sownload ship tracking data or hydrophone acoustics"
+)
+download_ships_parser.add_argument("year", type=int)
+download_ships_parser.add_argument("month", type=int)
+download_ships_parser.add_argument("zone", type=int)
+
+
 def __main__():
     subcommand = sys.argv[1]
     if subcommand == "save-token":
         parser = save_token_parser
-        args = parser.parse_args(sys.argv[2:])
         subcommand = save_user_token
+    elif subcommand == "ships":
+        parser = download_ships_parser
+        subcommand = download_ships
     else:
         raise ValueError(f"No subcommand named '{subcommand}'")
+    args = parser.parse_args(sys.argv[2:])
     subcommand(**vars(args))

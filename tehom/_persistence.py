@@ -1,6 +1,6 @@
 """Common variables and functions that may be imported by any module"""
 from contextlib import contextmanager
-from typing import Union
+from typing import Union, List, Tuple
 from pathlib import Path
 
 import sqlalchemy
@@ -14,6 +14,8 @@ from sqlalchemy import (
     String,
     MetaData,
     Index,
+    select,
+    insert,
 )
 
 STORAGE = Path(__file__).parent / "storage"
@@ -99,13 +101,14 @@ def _ais_meta_columns():
 def _ais_ships_columns():
     return [
         Column("mmsi", Integer, primary_key=True),
-        Column("BaseDateTime", String, primary_key=True),
+        Column("basedatetime", String, primary_key=True),
         Column("lat", Float),
         Column("lon", Float),
         Column("sog", Float),
         Column("cog", Float),
         Column("heading", Float),
         Column("vesselname", String),
+        Column("imo", String),
         Column("callsign", String),
         Column("vesseltype", Integer),
         Column("status", String),
@@ -113,7 +116,7 @@ def _ais_ships_columns():
         Column("width", Float),
         Column("draft", Float),
         Column("cargo", Integer),
-        Index("idx_time_lat_lon", "BaseDateTime", "lat", "lon"),
+        Index("idx_time_lat_lon", "basedatetime", "lat", "lon"),
     ]
 
 
@@ -171,3 +174,47 @@ def load_user_token() -> str:
     """Load saved token"""
     with open(LOCAL_TOKEN_PATH, "r") as fh:
         return fh.readline()
+
+
+def get_ais_downloads(ais_db: Union[Path, str]) -> List[Tuple]:
+    """Identify which AIS year-month-zone combinations have already been
+    added to the AIS database
+
+    Arguments:
+        ais_db: path to the database of AIS records
+
+    Returns:
+        set of records, each arragned as a tuple comprising (year,
+        month, zone)
+    """
+    eng = _get_engine(ais_db)
+    md = MetaData(eng)
+    meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
+    stmt = select(meta_table)
+    return eng.execute(stmt).fetchall()
+
+
+def update_ais_downloads(year, month, zone, ais_db):
+    """Updates the AIS database to track downloads
+
+    Arguments:
+        year (int): year to download
+        month (int): month to download
+        zone (int): UTM zone to download
+        ais_db: path to the database of AIS records
+    """
+    eng = _get_engine(ais_db)
+    md = MetaData(eng)
+    meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
+    stmt = insert(meta_table).values(year=year, month=month, zone=zone)
+    return eng.execute(stmt)
+
+
+def update_onc_tracker(onc_db: Path, files: List[Path]) -> None:
+    """Updates the ONC database to track downloads
+
+    Arguments:
+        onc_db: database to track ONC downloads
+        files: list of files downloaded to add to the tracker
+    """
+    pass
