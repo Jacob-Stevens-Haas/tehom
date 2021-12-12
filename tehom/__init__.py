@@ -3,7 +3,7 @@ import argparse
 
 from ._version import get_versions
 from ._persistence import save_user_token
-from .downloads import download_ships
+from .downloads import download_ships, download_acoustics
 
 __version__ = get_versions()["version"]
 del get_versions
@@ -49,7 +49,7 @@ def __main__():
         subcommand = download_ships
     elif subcommand == "sound":
         parser = download_acoustics_parser
-        subcommand = download_ships
+        subcommand = download_acoustics
     else:
         raise ValueError(f"No subcommand named '{subcommand}'")
     args = parser.parse_args(sys.argv[2:])
