@@ -276,7 +276,12 @@ def _get_deployments():
     hphones = onc.getDeployments(filters={"deviceCategoryCode": "HYDROPHONE"})
     hphones["begin"] = pd.to_datetime(hphones["begin"])
     hphones["end"] = pd.to_datetime(hphones["end"])
+    hphones["zone"] = _identify_utm_zone(hphones["lon"])
     return pd.DataFrame(hphones)
+
+
+def _identify_utm_zone(lon):
+    return lon // 6 + 31
 
 
 def get_audio_availability(
