@@ -267,6 +267,12 @@ def _identify_utm_zone(lon):
 def get_audio_availability(
     start: Union[Timestamp, str], finish: Union[Timestamp, str]
 ) -> DataFrame:
+    """Show what hydrophones have data available within an interval
+
+    Arguments:
+        start: beginning of interval
+        finish: end of interval
+    """
     hphones = _get_deployments()
 
     def localize_or_convert(time: pd.Timestamp):
