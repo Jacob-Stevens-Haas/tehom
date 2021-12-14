@@ -1,4 +1,5 @@
-"""Common variables and functions that may be imported by any module"""
+"""Data persistence module to handle all database and filesystem CRUD"""
+import pickle
 import warnings
 
 from contextlib import contextmanager
@@ -354,3 +355,59 @@ def _get_onc_downloads(onc_db: Path) -> Set:
     md = MetaData(eng)
     spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
     return pd.read_sql(select(spans_table), eng)
+
+
+def load_audio_availability_progress() -> pd.DataFrame:
+    init_data_folder()
+    if not (ONC_DIR / "cert_progress.log").exists():
+        return pd.DataFrame()
+    else:
+        with open(ONC_DIR / "cert_progress.log", "rb") as fh:
+            progress_df = pickle.load(fh)
+        return progress_df
+
+
+def save_audio_availability_progress(tranges, row, onc_db):
+    hydrophone = row["deviceCode"]
+
+    eng = _get_engine(onc_db)
+    md = MetaData(eng)
+    availability_table = Table(
+        "availability", md, *_onc_availability_columns()
+    )
+    with open(ONC_DIR / "cert_progress.log", "rb") as fh:
+        progress_df = pickle.load(fh).set_index(["deviceCode", "begin"])
+    update_df = pd.DataFrame(row).T.set_index(["deviceCode", "begin"])
+    if (row["deviceCode"], row["begin"]) in progress_df.index:
+        progress_df.update(update_df)
+    else:
+        progress_df.append(update_df)
+    with open(ONC_DIR / "cert_progress.log", "rb") as fh:
+        pickle.dump(progress_df.reset_index(), fh)
+
+    stmt = (
+        select(availability_table)
+        .where(availability_table.c.deviceCode == hydrophone)
+        .order_by(availability_table.c.finish.desc())
+    )
+    last_record = pd.Series(stmt.fetchone())
+    if last_record:
+        overlap = pd.to_datetime(last_record["end"])
+        if tranges[0].lower <= overlap:
+            tranges[0] = datetimerange(
+                pd.to_datetime(last_record["begin"]), tranges[0].upper
+            )
+            stmt = delete(availability_table).where(
+                and_(
+                    availability_table.c.deviceCode == hydrophone,
+                    availability_table.c.begin == tranges[0].lower,
+                )
+            )
+            eng.execute(stmt)
+    rows_to_add = pd.DataFrame(
+        ((trange.lower, trange.upper) for trange in tranges),
+        columns=["begin", "end"],
+    )
+    additional_columns = ["deviceCode", "lat", "lon"]
+    rows_to_add.loc[:, additional_columns] = row[additional_columns]
+    rows_to_add.to_sql("availability", eng, if_exists="append")
