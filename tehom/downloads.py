@@ -254,10 +254,11 @@ def download_acoustics(
 @lru_cache(maxsize=1)
 def _get_deployments():
     hphones = onc.getDeployments(filters={"deviceCategoryCode": "HYDROPHONE"})
-    hphones["begin"] = pd.to_datetime(hphones["begin"])
-    hphones["end"] = pd.to_datetime(hphones["end"])
-    hphones["zone"] = _identify_utm_zone(hphones["lon"])
-    return pd.DataFrame(hphones)
+    df = pd.DataFrame(hphones)
+    df["begin"] = pd.to_datetime(df["begin"])
+    df["end"] = pd.to_datetime(df["end"])
+    df["zone"] = _identify_utm_zone(df["lon"])
+    return df
 
 
 def _identify_utm_zone(lon):
