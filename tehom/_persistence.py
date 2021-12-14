@@ -159,6 +159,9 @@ def init_onc_db(onc_db: Union[Path, str]) -> None:
     md = MetaData(eng)
     spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
     files_table = Table("files", md, *_onc_files_columns())  # noqa: F841
+    availability_table = Table(  # noqa: F841
+        "availability", md, *_onc_availability_columns()
+    )
     md.create_all()
     return md
 
@@ -179,6 +182,16 @@ def _onc_files_columns():
         Column("duration", Integer),
         Column("format", String),
         Column("filename", String),
+    ]
+
+
+def _onc_availability_columns():
+    return [
+        Column("hydrophone", String, primary_key=True),
+        Column("start", String, primary_key=True),
+        Column("finish", String, primary_key=True),
+        Column("lat", String, primary_key=True),
+        Column("lon", String, primary_key=True),
     ]
 
 
