@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from sqlalchemy import text
@@ -56,3 +57,73 @@ def test_acoustic_files_downloaded(complete_acoustic_download):
     onc_folder = _persistence.ONC_DIR
     files = (file.name for file in onc_folder.iterdir())
     assert "ICLISTENHF1252_20160101T115623.000Z.wav" in files
+
+
+@pytest.fixture
+def mock_load_datetime():
+    return pd.Timestamp("20160401T000001Z")
+
+
+@pytest.fixture
+def mock_deployments(mock_load_datetime):
+    temp_loaded_datetime = downloads.MODULE_LOADED_DATETIME
+    downloads.MODULE_LOADED_DATETIME = mock_load_datetime
+    hphones = pd.DataFrame(
+        {
+            "deviceCode": ["a", "a", "b"],
+            "begin": [
+                pd.Timestamp("2016"),
+                pd.Timestamp("20160201"),
+                pd.Timestamp("20160301"),
+            ],
+            "end": [pd.Timestamp("20160115T000001Z"), None, None],
+        }
+    )
+    yield hphones
+    downloads.MODULE_LOADED_DATETIME = temp_loaded_datetime
+
+
+def test_what_to_certify_nothing_yet(mock_deployments, mock_load_datetime):
+    result = downloads._what_to_certify(mock_deployments, None)
+    expected = pd.DataFrame(
+        {
+            "deviceCode": ["a", "a", "b"],
+            "begin": [
+                pd.Timestamp("2016"),
+                pd.Timestamp("20160201"),
+                pd.Timestamp("20160301"),
+            ],
+            "end": [
+                pd.Timestamp("20160115T000001Z"),
+                mock_load_datetime,
+                mock_load_datetime,
+            ],
+        }
+    )
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_what_to_certify_overlap(mock_deployments, mock_load_datetime):
+    mock_processed_df = pd.DataFrame(
+        {
+            "deviceCode": ["a", "a"],
+            "begin": [pd.Timestamp("2016"), pd.Timestamp("20160201")],
+            "end": [
+                pd.Timestamp("20160115T000001Z"),
+                pd.Timestamp("20160215T000001Z"),
+            ],
+        }
+    )
+
+    result = downloads._what_to_certify(mock_deployments, mock_processed_df)
+    expected = pd.DataFrame(
+        {
+            "deviceCode": ["a", "b"],
+            "begin": [
+                pd.Timestamp("20160215T000001Z"),
+                pd.Timestamp("20160301"),
+            ],
+            "end": [mock_load_datetime, mock_load_datetime],
+        }
+    )
+    pd.testing.assert_frame_equal(result, expected)
