@@ -275,12 +275,13 @@ def certify_audio_availibility():
     As this is a long-running-process, it saves its progress along the
     way in a pickle file and restarts from the last pickle.
     """
+    _persistence.init_onc_db(_persistence.ONC_DB)
     hphones = _get_deployments()
     processed_df = _persistence.load_audio_availability_progress()
     rows_to_process = _what_to_certify(hphones, processed_df)
-    for row in rows_to_process:
+    for _, row in rows_to_process.iterrows():
         tranges = _query_single_audio_availability(
-            row["deviceCode"], row["start"], row["finish"]
+            row["deviceCode"], row["begin"], row["end"]
         )
         _persistence.save_audio_availability_progress(
             tranges, row, _persistence.ONC_DB
@@ -296,8 +297,8 @@ def _query_single_audio_availability(
         response = onc.getListByDevice(
             {
                 "deviceCode": hydrophone,
-                "dateFrom": start,
-                "dateTo": finish,
+                "dateFrom": _onc_iso_fmt(start),
+                "dateTo": _onc_iso_fmt(finish),
                 "fileExtension": "wav",
                 "rowLimit": 100000,
                 "page": page,
@@ -307,14 +308,20 @@ def _query_single_audio_availability(
         if response["next"] is None:
             break
         page += 1
-    time_pattern = r"_(\d{8}T\d{6}(?:\.\d+)?Z)\."
+    if not files:
+        return []
+    else:
+        return _deterime_tranges_from_files(files)
+
+
+def _deterime_tranges_from_files(files):
+    time_pattern = r"_(\d{8}T\d{6}(?:\.\d+)?Z)"
     file_times = (
         pd.Series(files)
         .str.extract(time_pattern, expand=False)
         .astype(np.datetime64)
     )
-    if file_times.empty:
-        return []
+    file_times = file_times.dropna()
     finish_times = file_times + pd.Timedelta("00:05:00")
     start_and_finish = zip(file_times, finish_times)
     # merging datetimeranges into datetimerangesets is less verbose, but O(n^2)
@@ -326,6 +333,7 @@ def _query_single_audio_availability(
         else:
             tranges.append(curr)
             curr = datetimerange(begin, end)
+    tranges.append(curr)
     return tranges
 
 
@@ -346,7 +354,7 @@ def _what_to_certify(
         Rows that need to be processed.
     """
     hphones["end"] = hphones["end"].fillna(MODULE_LOADED_DATETIME)
-    if processed_df is None:
+    if processed_df.empty:
         return hphones
     partial_index_labels = ["deviceCode", "begin"]
     full_index_labels = partial_index_labels + ["end"]

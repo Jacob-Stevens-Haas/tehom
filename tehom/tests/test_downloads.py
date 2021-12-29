@@ -84,7 +84,7 @@ def mock_deployments(mock_load_datetime):
 
 
 def test_what_to_certify_nothing_yet(mock_deployments, mock_load_datetime):
-    result = downloads._what_to_certify(mock_deployments, None)
+    result = downloads._what_to_certify(mock_deployments, pd.DataFrame())
     expected = pd.DataFrame(
         {
             "deviceCode": ["a", "a", "b"],
