@@ -49,6 +49,7 @@ except FileNotFoundError:
     warnings.warn(
         "Module loaded with no ONC token; unable to query ONC server data."
     )
+    onc_session = None
 
 
 @contextmanager
