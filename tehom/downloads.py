@@ -279,7 +279,7 @@ def certify_audio_availibility():
     hphones = _get_deployments()
     processed_df = _persistence.load_audio_availability_progress()
     rows_to_process = _what_to_certify(hphones, processed_df)
-    for _, row in rows_to_process.iterrows():
+    for i, row in rows_to_process.iterrows():
         tranges = _query_single_audio_availability(
             row["deviceCode"], row["begin"], row["end"]
         )
@@ -360,12 +360,13 @@ def _what_to_certify(
     full_index_labels = partial_index_labels + ["end"]
     hphones = hphones.set_index(full_index_labels, drop=False)
     pro_index = pd.Index(processed_df.loc[:, full_index_labels])
-
     overlap_index = hphones.index.intersection(pro_index)
     hphones = hphones.drop(overlap_index)
+
+    # For hphone records that were ongoing, and thus have a processed record
+    # with the same start time, but different end time
     hphones = hphones.set_index(partial_index_labels, drop=False)
     pro_index = pd.Index(processed_df.loc[:, partial_index_labels])
-
     partial_overlap_index = hphones.index.intersection(pro_index)
     hphones.loc[partial_overlap_index, "begin"] = processed_df.set_index(
         partial_index_labels
