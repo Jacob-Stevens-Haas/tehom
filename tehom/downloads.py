@@ -400,6 +400,17 @@ def get_audio_availability(
     return hphones[after_start & before_finish]
 
 
+def filter_hphones_rect(hphones, sw_corner=(-90, -180), ne_corner=(90, 180)):
+    """Filter a hydrophone table by geographic area"""
+    lat_filter = (hphones["lat"] > sw_corner[0]) & (
+        hphones["lat"] < ne_corner[0]
+    )
+    lon_filter = (hphones["lon"] > sw_corner[1]) & (
+        hphones["lon"] < ne_corner[1]
+    )
+    return hphones.loc[lat_filter & lon_filter]
+
+
 def _onc_iso_fmt(dt: Union[Timestamp, str]) -> str:
     """Formats the datetime according to how ONC needs it in requests."""
     dt = np.datetime64(pd.to_datetime(dt), "ms")
