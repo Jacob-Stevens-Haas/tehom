@@ -34,12 +34,16 @@ from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas.core.frame import DataFrame
 from plotly.graph_objs._figure import Figure as PFigure
+from spans import datetimerange
 
 from . import _persistence
 
 logger = logging.getLogger(__name__)
-
+DateTime = Union[str, pd.Timestamp]
 ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
+
+OVERLAP_PRECISION = pd.Timedelta(500, "ms")
+MODULE_LOADED_DATETIME = pd.Timestamp.utcnow()
 
 try:
     onc = _persistence.onc_session
@@ -254,19 +258,132 @@ def download_acoustics(
 @lru_cache(maxsize=1)
 def _get_deployments():
     hphones = onc.getDeployments(filters={"deviceCategoryCode": "HYDROPHONE"})
-    hphones["begin"] = pd.to_datetime(hphones["begin"])
-    hphones["end"] = pd.to_datetime(hphones["end"])
-    hphones["zone"] = _identify_utm_zone(hphones["lon"])
-    return pd.DataFrame(hphones)
+    df = pd.DataFrame(hphones)
+    df["begin"] = pd.to_datetime(df["begin"])
+    df["end"] = pd.to_datetime(df["end"])
+    df["zone"] = _identify_utm_zone(df["lon"])
+    return df
 
 
 def _identify_utm_zone(lon):
     return lon // 6 + 31
 
 
+def certify_audio_availibility():
+    """Works with ONC server to determine data availability intervals
+
+    As this is a long-running-process, it saves its progress along the
+    way in a pickle file and restarts from the last pickle.
+    """
+    _persistence.init_onc_db(_persistence.ONC_DB)
+    hphones = _get_deployments()
+    processed_df = _persistence.load_audio_availability_progress()
+    rows_to_process = _what_to_certify(hphones, processed_df)
+    for i, row in rows_to_process.iterrows():
+        tranges = _query_single_audio_availability(
+            row["deviceCode"], row["begin"], row["end"]
+        )
+        _persistence.save_audio_availability_progress(
+            tranges, row, _persistence.ONC_DB
+        )
+
+
+def _query_single_audio_availability(
+    hydrophone: str, start: DateTime, finish: DateTime
+) -> List[spans.datetimerange]:
+    page = 1
+    files = []
+    while True:
+        response = onc.getListByDevice(
+            {
+                "deviceCode": hydrophone,
+                "dateFrom": _onc_iso_fmt(start),
+                "dateTo": _onc_iso_fmt(finish),
+                "fileExtension": "wav",
+                "rowLimit": 100000,
+                "page": page,
+            }
+        )
+        files += response["files"]
+        if response["next"] is None:
+            break
+        page += 1
+    if not files:
+        return []
+    else:
+        return _deterime_tranges_from_files(files)
+
+
+def _deterime_tranges_from_files(files):
+    time_pattern = r"_(\d{8}T\d{6}(?:\.\d+)?Z)"
+    file_times = (
+        pd.Series(files)
+        .str.extract(time_pattern, expand=False)
+        .astype(np.datetime64)
+    )
+    file_times = file_times.dropna()
+    finish_times = file_times + pd.Timedelta("00:05:00")
+    start_and_finish = zip(file_times, finish_times)
+    # merging datetimeranges into datetimerangesets is less verbose, but O(n^2)
+    tranges = []
+    curr = datetimerange(*next(start_and_finish))
+    for begin, end in start_and_finish:
+        if curr.upper > begin - OVERLAP_PRECISION:
+            curr = datetimerange(curr.lower, end)
+        else:
+            tranges.append(curr)
+            curr = datetimerange(begin, end)
+    tranges.append(curr)
+    return tranges
+
+
+def _what_to_certify(
+    hphones: pd.DataFrame, processed_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Subtract processed records from total records
+
+    Individual records can either be identical, new, or have the same
+    start but different end dates.  The final option is likely if a
+    deployment was ongoing when records were previously processed.
+
+    Arguments:
+        hphones: total records that may need processing
+        processed_df: existing records of processing.
+
+    Returns:
+        Rows that need to be processed.
+    """
+    hphones["end"] = hphones["end"].fillna(MODULE_LOADED_DATETIME)
+    if processed_df.empty:
+        return hphones
+    partial_index_labels = ["deviceCode", "begin"]
+    full_index_labels = partial_index_labels + ["end"]
+    hphones = hphones.set_index(full_index_labels, drop=False)
+    pro_index = pd.Index(processed_df.loc[:, full_index_labels])
+    overlap_index = hphones.index.intersection(pro_index)
+    hphones = hphones.drop(overlap_index)
+
+    # For hphone records that were ongoing, and thus have a processed record
+    # with the same start time, but different end time
+    hphones = hphones.set_index(partial_index_labels, drop=False)
+    pro_index = pd.Index(processed_df.loc[:, partial_index_labels])
+    partial_overlap_index = hphones.index.intersection(pro_index)
+    hphones.loc[partial_overlap_index, "begin"] = processed_df.set_index(
+        partial_index_labels
+    ).loc[partial_overlap_index, "end"]
+
+    return hphones.reset_index(drop=True)
+
+
 def get_audio_availability(
     start: Union[Timestamp, str], finish: Union[Timestamp, str]
 ) -> DataFrame:
+    """Show what hydrophones have data available within an interval
+
+    Arguments:
+        start: beginning of interval
+        finish: end of interval
+    """
     hphones = _get_deployments()
 
     def localize_or_convert(time: pd.Timestamp):
