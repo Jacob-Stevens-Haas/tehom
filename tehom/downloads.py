@@ -29,6 +29,8 @@ import numpy as np
 import spans
 import pytz
 
+from matplotlib import pyplot as plt
+from matplotlib.text import Text
 from matplotlib.figure import Figure as MFigure
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
@@ -477,7 +479,47 @@ def show_available_data(
     # of which there could be dozens.  Try to find a good way of
     # calculating the appropriate height for each bar based upon the
     # number of hydrophones in each zone.
-    pass
+    hphones = get_audio_availability(begin, end)
+    hphones = filter_hphones_rect(hphones, bottomleft, topright)
+    if style == "bar":
+
+        def all_same_loc(df):
+            """See if a hydrophone moves across multiple deployments"""
+            lat0 = df["lat"].iloc[0]
+            lon0 = df["lon"].iloc[0]
+            lat_same = df["lat"] == lat0
+            lon_same = df["lon"] == lon0
+            # Maybe a "close enough" way
+            if not lat_same.all() or not lon_same.all():
+                return False
+            return True
+
+        hphones = hphones.sort_values(["zone", "deviceCode"])
+        hphones["label"] = hphones.apply(
+            lambda row: "Zone " + str(row["zone"]) + ": " + row["deviceCode"],
+            axis=1,
+        )
+        hphones["left"] = hphones["begin"].apply(
+            lambda time: max(pd.to_datetime(begin, utc=True), time)
+        )
+        hphones["right"] = hphones["end"].apply(
+            lambda time: min(pd.to_datetime(end, utc=True), time)
+        )
+        plt.figure(figsize=[8, 10])
+        plt.barh(
+            hphones["label"],
+            (hphones["right"] - hphones["left"]).astype(int),
+            left=hphones["left"].astype(int),
+        )
+        old_tics = plt.xticks()
+        plt.xticks(
+            old_tics[0],
+            [
+                Text(val, 0, pd.Timestamp(val / 1e9, unit="s"))
+                for val in old_tics[0]
+            ],
+            rotation=70,
+        )
 
 
 @dataclass
