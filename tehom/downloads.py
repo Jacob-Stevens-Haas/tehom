@@ -31,6 +31,7 @@ import pytz
 
 from matplotlib import pyplot as plt
 from matplotlib.text import Text
+from matplotlib.patches import Rectangle
 from matplotlib.figure import Figure as MFigure
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
@@ -268,7 +269,7 @@ def _get_deployments():
 
 
 def _identify_utm_zone(lon):
-    return lon // 6 + 31
+    return int(lon // 6 + 31)
 
 
 def certify_audio_availibility():
@@ -479,6 +480,21 @@ def show_available_data(
     # of which there could be dozens.  Try to find a good way of
     # calculating the appropriate height for each bar based upon the
     # number of hydrophones in each zone.
+    ais_data = _persistence.get_ais_downloads(_persistence.AIS_DB)
+    ais_data = pd.DataFrame(ais_data, columns=["year", "month", "zone"])
+    ais_data["begin"] = ais_data.apply(
+        lambda row: pd.to_datetime(
+            str(row["year"]) + f"{row['month']:02}01", utc=True
+        ),
+        axis=1,
+    )
+    ais_data["end"] = ais_data.apply(
+        lambda row: pd.to_datetime(
+            str(row["year"]) + f"{row['month']+1:02}01", utc=True
+        ),
+        axis=1,
+    )
+    ais_data = ais_data[(ais_data["end"] > begin) & (ais_data["begin"] < end)]
     hphones = get_audio_availability(begin, end)
     hphones = filter_hphones_rect(hphones, bottomleft, topright)
     if style == "bar":
@@ -495,6 +511,21 @@ def show_available_data(
             return True
 
         hphones = hphones.sort_values(["zone", "deviceCode"])
+        zone_nbars = (
+            hphones.groupby("zone")["deviceCode"]
+            .nunique()
+            .sort_index(ascending=False)
+        )
+        zone_barstart = (
+            zone_nbars.sort_index().cumsum() - zone_nbars.sort_index()
+        )
+        ais_data["bottom"] = ais_data["zone"].apply(
+            lambda z: zone_barstart.loc[z]
+        )
+        ais_data["height"] = ais_data["zone"].apply(
+            lambda z: zone_nbars.loc[z]
+        )
+
         hphones["label"] = hphones.apply(
             lambda row: "Zone " + str(row["zone"]) + ": " + row["deviceCode"],
             axis=1,
@@ -520,6 +551,13 @@ def show_available_data(
             ],
             rotation=70,
         )
+        # ax = plt.gca()
+        # for row in ais_data:
+        #     Rectangle(
+        #         (row["begin"], row["bottom"]),
+        #         row["end"] - row["begin"],
+        #         row["height"],
+        #     )
 
 
 @dataclass
