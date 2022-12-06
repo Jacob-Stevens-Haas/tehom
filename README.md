@@ -5,3 +5,6 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 # Tehom - the primordial deep of chaos
 Machine Learning on Underwater Acoustics
+
+## Requirements
+sqlite3 available as a command line program

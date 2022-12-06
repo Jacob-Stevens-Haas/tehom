@@ -48,7 +48,9 @@ try:
     )
 except FileNotFoundError:
     warnings.warn(
-        "Module loaded with no ONC token; unable to query ONC server data."
+        "Module loaded with no ONC token; unable to query ONC server data. "
+        " Save onc token as a text file named 'token' in the storage folder"
+        " adjacent to this file, or use the `save_user_token()` function."
     )
     onc_session = None
 
@@ -218,7 +220,7 @@ def save_user_token(token: Union[Path, str], force: bool = False) -> None:
         fh.write(token)
 
 
-def get_ais_downloads(ais_db: Union[Path, str]) -> List[Tuple]:
+def get_ais_downloads(ais_db: Union[Path, str] = AIS_DB) -> List[Tuple]:
     """Identify which AIS year-month-zone combinations have already been
     added to the AIS database
 
@@ -341,7 +343,16 @@ def datetimerangeset_from_df(df):
     return datetimerangeset(ranges)
 
 
-def _get_onc_downloads(onc_db: Path) -> Set:
+def get_onc_certified(onc_db: Path = ONC_DB) -> pd.DataFrame:
+    eng = _get_engine(onc_db)
+    md = MetaData(eng)
+    spans_table = Table(
+        "availability", md, *_onc_availability_columns()
+    )  # noqa: F841
+    return pd.read_sql(select(spans_table), eng)
+
+
+def get_onc_downloads(onc_db: Path = ONC_DB) -> Set:
     """Identify which ONC hydrophone data ranges have been downloaded
     and tracked in the ONC database.
 

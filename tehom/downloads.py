@@ -263,7 +263,7 @@ def _get_deployments():
     df = pd.DataFrame(hphones)
     df["begin"] = pd.to_datetime(df["begin"])
     df["end"] = pd.to_datetime(df["end"])
-    df["zone"] = _identify_utm_zone(df["lon"])
+    df["zone"] = df["lon"].apply(_identify_utm_zone)
     return df
 
 
@@ -271,7 +271,7 @@ def _identify_utm_zone(lon):
     return int(lon // 6 + 31)
 
 
-def certify_audio_availibility():
+def certify_audio_availability():
     """Works with ONC server to determine data availability intervals
 
     As this is a long-running-process, it saves its progress along the
@@ -365,8 +365,8 @@ def _what_to_certify(
     overlap_index = hphones.index.intersection(pro_index)
     hphones = hphones.drop(overlap_index)
 
-    # For hphone records that were ongoing, and thus have a processed record
-    # with the same start time, but different end time
+    # For hphone records that were ongoing, and thus have a processed
+    # record with the same start time, but different end time
     hphones = hphones.set_index(partial_index_labels, drop=False)
     pro_index = pd.Index(processed_df.loc[:, partial_index_labels])
     partial_overlap_index = hphones.index.intersection(pro_index)
@@ -378,13 +378,16 @@ def _what_to_certify(
 
 
 def get_audio_availability(
-    start: Union[Timestamp, str], finish: Union[Timestamp, str]
+    start: Union[Timestamp, str] = "2010",
+    finish: Union[Timestamp, str] = pd.to_datetime("now", utc=True),
+    certified: bool = False,
 ) -> DataFrame:
     """Show what hydrophones have data available within an interval
 
     Arguments:
         start: beginning of interval
         finish: end of interval
+        certified: Whether to show certified availaibility (or just deployments)
     """
     hphones = _get_deployments()
 
