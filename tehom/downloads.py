@@ -38,7 +38,7 @@ from pandas.core.frame import DataFrame
 from plotly.graph_objs._figure import Figure as PFigure
 from spans import datetimerange
 
-from . import _persistence
+from tehom import _persistence
 
 logger = logging.getLogger(__name__)
 DateTime = Union[str, pd.Timestamp]
@@ -389,6 +389,9 @@ def get_audio_availability(
         finish: end of interval
         certified: Whether to show certified availaibility (or just deployments)
     """
+    if certified:
+        return _persistence.get_onc_certified()
+
     hphones = _get_deployments()
 
     def localize_or_convert(time: pd.Timestamp):
