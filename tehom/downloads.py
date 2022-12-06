@@ -31,7 +31,6 @@ import pytz
 
 from matplotlib import pyplot as plt
 from matplotlib.text import Text
-from matplotlib.patches import Rectangle
 from matplotlib.figure import Figure as MFigure
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
@@ -47,7 +46,7 @@ ais_site = "https://coast.noaa.gov/htdata/CMSP/AISDataHandler/"
 
 OVERLAP_PRECISION = pd.Timedelta(500, "ms")
 MODULE_LOADED_DATETIME = pd.Timestamp.utcnow()
-
+DEFAULT_COLORS = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 try:
     onc = _persistence.onc_session
 except NameError:
@@ -423,9 +422,9 @@ def _onc_iso_fmt(dt: Union[Timestamp, str]) -> str:
 def show_available_data(
     begin: Union[datetime, str, Timestamp],
     end: Union[datetime, str, Timestamp],
+    style: str,
     bottomleft: Tuple[float] = (-90.0, -180.0),
     topright: Tuple[float] = (90.0, 180.0),
-    style: str = "map",
     ais_db: Path = _persistence.AIS_DB,
     onc_db: Path = _persistence.ONC_DB,
 ) -> Union[MFigure, PFigure]:
@@ -517,7 +516,7 @@ def show_available_data(
             .sort_index(ascending=False)
         )
         zone_barstart = (
-            zone_nbars.sort_index().cumsum() - zone_nbars.sort_index()
+            zone_nbars.sort_index().cumsum() - zone_nbars.sort_index() - 0.5
         )
         ais_data["bottom"] = ais_data["zone"].apply(
             lambda z: zone_barstart.loc[z]
@@ -538,9 +537,19 @@ def show_available_data(
         )
         plt.figure(figsize=[8, 10])
         plt.barh(
+            ais_data["bottom"],
+            (ais_data["end"] - ais_data["begin"]).astype(int),
+            ais_data["height"],
+            ais_data["begin"].astype(int),
+            align="edge",
+            color=DEFAULT_COLORS[1],
+        )
+        plt.barh(
             hphones["label"],
             (hphones["right"] - hphones["left"]).astype(int),
+            height=0.8,
             left=hphones["left"].astype(int),
+            color=DEFAULT_COLORS[0],
         )
         old_tics = plt.xticks()
         plt.xticks(
@@ -551,13 +560,6 @@ def show_available_data(
             ],
             rotation=70,
         )
-        # ax = plt.gca()
-        # for row in ais_data:
-        #     Rectangle(
-        #         (row["begin"], row["bottom"]),
-        #         row["end"] - row["begin"],
-        #         row["height"],
-        #     )
 
 
 @dataclass
