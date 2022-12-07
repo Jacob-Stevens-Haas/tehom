@@ -240,7 +240,8 @@ def download_acoustics(
                 "dateFrom": _onc_iso_fmt(begin),
                 "dateTo": _onc_iso_fmt(end),
                 "deviceCode": hphone,
-                "dpo_hydrophoneDataDiversionMode": "OD",
+                # "dpo_hydrophoneDataDiversionMode": "OD",
+                "dpo_audioDownsample": -1,
             }
         )
         req_id = request["dpRequestId"]
