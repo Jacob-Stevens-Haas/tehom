@@ -39,6 +39,7 @@ from plotly.graph_objs._figure import Figure as PFigure
 from spans import datetimerange
 
 from tehom import _persistence
+from tehom._persistence import get_ais_downloads  # noqa: F401
 
 logger = logging.getLogger(__name__)
 DateTime = Union[str, pd.Timestamp]
