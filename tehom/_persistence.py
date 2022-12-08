@@ -263,15 +263,16 @@ def update_onc_tracker(onc_db: Path, files: List[str], format) -> None:
     """
 
     def _extract_info_from_filename(file: str) -> Tuple:
+        # Filenames: hydrophone_starttime[-descriptor].ext
         pieces = file.split("_", 1)
         hydrophone = pieces[0]
-        start = pieces[1].rsplit(".", 1)[0]
+        start = pieces[1].rsplit(".", 1)[0].split("-")[0]
         return (hydrophone, start, file)
 
     file_tuples = [
         _extract_info_from_filename(file)
         for file in files
-        if file[-3:] == format
+        if file[-3:] == format  # ignore non-data files
     ]
     file_df = pd.DataFrame(
         data=file_tuples, columns=["hydrophone", "start", "filename"]
@@ -349,7 +350,12 @@ def get_onc_certified(onc_db: Path = ONC_DB) -> pd.DataFrame:
     spans_table = Table(
         "availability", md, *_onc_availability_columns()
     )  # noqa: F841
-    return pd.read_sql(select(spans_table), eng)
+    hphones = pd.read_sql(select(spans_table), eng)
+    hphones["begin"] = pd.to_datetime(hphones["begin"], utc=True)
+    hphones["end"] = pd.to_datetime(hphones["end"], utc=True)
+    hphones["lat"] = hphones["lat"].astype(float)
+    hphones["lon"] = hphones["lon"].astype(float)
+    return hphones
 
 
 def get_onc_downloads(onc_db: Path = ONC_DB) -> Set:

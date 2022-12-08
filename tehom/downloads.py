@@ -234,17 +234,21 @@ def download_acoustics(
 
     files = []
     for hphone in hydrophones:
-        request = onc.requestDataProduct(
-            filters={
-                "dataProductCode": code_from_extension(extension),
-                "extension": extension,
-                "dateFrom": _onc_iso_fmt(begin),
-                "dateTo": _onc_iso_fmt(end),
-                "deviceCode": hphone,
-                # "dpo_hydrophoneDataDiversionMode": "OD",
-                "dpo_audioDownsample": -1,
-            }
-        )
+        try:
+            request = onc.requestDataProduct(
+                filters={
+                    "dataProductCode": code_from_extension(extension),
+                    "extension": extension,
+                    "dateFrom": _onc_iso_fmt(begin),
+                    "dateTo": _onc_iso_fmt(end),
+                    "deviceCode": hphone,
+                    # "dpo_hydrophoneDataDiversionMode": "OD",
+                    "dpo_audioDownsample": -1,
+                }
+            )
+        except TypeError:
+            # Bug in ONC code, skip hydrophone
+            continue
         req_id = request["dpRequestId"]
         run_ids = onc.runDataProduct(req_id)["runIds"]
         for id in run_ids:
@@ -392,9 +396,10 @@ def get_audio_availability(
         certified: Whether to show certified availaibility (or just deployments)
     """
     if certified:
-        return _persistence.get_onc_certified()
-
-    hphones = _get_deployments()
+        hphones = _persistence.get_onc_certified()
+        hphones["zone"] = hphones["lon"].apply(_identify_utm_zone)
+    else:
+        hphones = _get_deployments()
 
     def localize_or_convert(time: pd.Timestamp):
         if time.tz is None:
@@ -435,6 +440,7 @@ def show_available_data(
     topright: Tuple[float] = (90.0, 180.0),
     ais_db: Path = _persistence.AIS_DB,
     onc_db: Path = _persistence.ONC_DB,
+    certified: bool = False,
 ) -> Union[MFigure, PFigure]:
     """Creates a visualization of what data is available to download and
     what data is available locally for sampling.
@@ -451,6 +457,8 @@ def show_available_data(
             downloads.
         ais_db: path to the database of AIS records
         onc_db: database to track ONC downloads
+        certified: Whether to restrict ranges to when data actually
+            available
 
     Returns:
         A plotly figure if ``style='map'`` or a matplotlib figure if
@@ -465,28 +473,7 @@ def show_available_data(
     # times available in the _get_deployments() function.  You can build
     # Geo scatter plot with plotly.graph_objects.Scattergeo().  See
     # https://plotly.com/python/map-configuration/ for examples
-    #
-    # Bar style:
-    # Something like matplotlib.pyplot.barh()
-    # A horizontal bar chart that shows both AIS and ONC data available.
-    # Y axis is a set of bars for each hydrophone, organized by UTM zone
-    # (ONC hydrophones are exclusively in UTM zones 9 and 10).  X axis
-    # is date.  When a single hydrophone has multiple deployments,
-    # it's row should have multiple bars.  Behind the hydrophone bars,
-    # there should be a different-colored bar chart for AIS data
-    # availability, built off of _persistence.get_ais_downloads().
-    #
-    # Once ONC data is downloaded, depending on the format, it should
-    # have differently-colored bars overlapping the data-availability
-    # bars.  See _get_onc_downloads().
-    #
-    # In addition, each row should have a label of the hydrophone name
-    # aligned to the left side of the row.
-    #
-    # The trick here is managing the spacing for all the different bars,
-    # of which there could be dozens.  Try to find a good way of
-    # calculating the appropriate height for each bar based upon the
-    # number of hydrophones in each zone.
+
     ais_data = _persistence.get_ais_downloads(_persistence.AIS_DB)
     ais_data = pd.DataFrame(ais_data, columns=["year", "month", "zone"])
     ais_data["begin"] = ais_data.apply(
@@ -502,7 +489,10 @@ def show_available_data(
         axis=1,
     )
     ais_data = ais_data[(ais_data["end"] > begin) & (ais_data["begin"] < end)]
-    hphones = get_audio_availability(begin, end)
+    if certified:
+        hphones = get_audio_availability(begin, end, True)
+    else:
+        hphones = get_audio_availability(begin, end)
     hphones = filter_hphones_rect(hphones, bottomleft, topright)
     if style == "bar":
 

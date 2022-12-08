@@ -53,10 +53,33 @@ def test_integration_temps_removed(complete_ship_download):
 
 
 @pytest.mark.slow
-def test_acoustic_files_downloaded(complete_acoustic_download):
+def test_acoustic_files_downloaded(declare_stateful):
     onc_folder = _persistence.ONC_DIR
+    downloads.download_acoustics(
+        ["ICLISTENHF1252"], "20160101T12:00:00", "20160101T12:01:00", "wav"
+    )
     files = (file.name for file in onc_folder.iterdir())
     assert "ICLISTENHF1252_20160101T115623.000Z.wav" in files
+
+
+@pytest.mark.slow
+def test_acoustic_files_downloaded2(declare_stateful):
+    onc_folder = _persistence.ONC_DIR
+    downloads.download_acoustics(
+        ["ICLISTENHF1352"], "20160101T12:00:00", "20160101T12:01:00", "mp3"
+    )
+    files = (file.name for file in onc_folder.iterdir())
+    assert "ICLISTENHF1252_20160101T115623.000Z.wav" in files
+
+
+def test_show_bar():
+    downloads.show_available_data(begin="2016-06", end="2016-08", style="bar")
+
+
+def test_show_bar_avail():
+    downloads.show_available_data(
+        begin="2016-06", end="2016-08", style="bar", certified=True
+    )
 
 
 @pytest.fixture
