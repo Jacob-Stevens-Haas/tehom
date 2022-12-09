@@ -2,9 +2,18 @@
 requires = [
     "setuptools>=42",
     "wheel",
-    "versioneer", 
+    "setuptools_scm[toml]>=6.2",
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "tehom"
+dynamic = ["version"]
+
+[project.scripts]
+cert-avail = "tehom.downloads:certify_audio_availability"
+
+[tool.setuptools_scm]
 
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
