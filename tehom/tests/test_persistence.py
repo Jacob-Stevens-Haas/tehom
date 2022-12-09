@@ -53,18 +53,14 @@ def default_engine():
 @pytest.fixture
 def onc_files_table(default_engine):
     md = MetaData(default_engine)
-    files_table = Table(
-        "files", md, *_persistence._onc_files_columns()
-    )  # noqa: F841
+    files_table = Table("files", md, *_persistence._onc_files_columns())  # noqa: F841
     yield files_table
 
 
 @pytest.fixture
 def onc_spans_table(default_engine):
     md = MetaData(default_engine)
-    spans_table = Table(
-        "spans", md, *_persistence._onc_spans_columns()
-    )  # noqa: F841
+    spans_table = Table("spans", md, *_persistence._onc_spans_columns())  # noqa: F841
     yield spans_table
 
 
@@ -77,8 +73,7 @@ def test_files_table_updated(
             onc_files_table.c.hydrophone == "ICLISTENHF1252",
             onc_files_table.c.format == "wav",
             onc_files_table.c.start == "20160101T115623.000Z",
-            onc_files_table.c.filename
-            == "ICLISTENHF1252_20160101T115623.000Z.wav",
+            onc_files_table.c.filename == "ICLISTENHF1252_20160101T115623.000Z.wav",
         )
     )
     results = default_engine.execute(stmt).fetchone()

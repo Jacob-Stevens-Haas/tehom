@@ -11,7 +11,7 @@ name = "tehom"
 dynamic = ["version"]
 
 [project.scripts]
-cert-avail = "tehom.downloads:certify_audio_availability"
+tehom = "tehom.__init__:__main__"
 
 [tool.setuptools_scm]
 
@@ -19,7 +19,7 @@ cert-avail = "tehom.downloads:certify_audio_availability"
 target-version = ['py37', 'py38', 'py39']
 verbose = 1
 experimental-string-processing = 1
-line-length = 79
+line-length = 88
 force-exclude = '''
 (
     asv/env

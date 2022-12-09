@@ -291,9 +291,7 @@ def update_onc_tracker(onc_db: Path, files: List[str], format) -> None:
     spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
     hphone_gb = file_df.groupby("hydrophone")
     for hphone, h_df in hphone_gb:
-        _record_downloaded_intervals_onc(
-            hphone, h_df, format, spans_table, eng
-        )
+        _record_downloaded_intervals_onc(hphone, h_df, format, spans_table, eng)
 
 
 def _record_downloaded_intervals_onc(
@@ -347,9 +345,7 @@ def datetimerangeset_from_df(df):
 def get_onc_certified(onc_db: Path = ONC_DB) -> pd.DataFrame:
     eng = _get_engine(onc_db)
     md = MetaData(eng)
-    spans_table = Table(
-        "availability", md, *_onc_availability_columns()
-    )  # noqa: F841
+    spans_table = Table("availability", md, *_onc_availability_columns())  # noqa: F841
     hphones = pd.read_sql(select(spans_table), eng)
     hphones["begin"] = pd.to_datetime(hphones["begin"], utc=True)
     hphones["end"] = pd.to_datetime(hphones["end"], utc=True)
@@ -397,9 +393,7 @@ def save_audio_availability_progress(tranges, row, onc_db):
 
     eng = _get_engine(onc_db)
     md = MetaData(eng)
-    availability_table = Table(
-        "availability", md, *_onc_availability_columns()
-    )
+    availability_table = Table("availability", md, *_onc_availability_columns())
     if not (ONC_DIR / "cert_progress.log").exists():
         progress_df = pd.DataFrame([], columns=row.index).set_index(
             ["deviceCode", "begin"]
@@ -438,23 +432,17 @@ def save_audio_availability_progress(tranges, row, onc_db):
             pickle.dump(progress_df.reset_index(), fh)
         if del_stmt:
             conn.execute(del_stmt)
-        rows_to_add.to_sql(
-            "availability", conn, index=False, if_exists="append"
-        )
+        rows_to_add.to_sql("availability", conn, index=False, if_exists="append")
 
 
 def rows_to_add_to_certify(availability_table, last_record, tranges, row):
     hydrophone = row["deviceCode"]
     del_stmt = None
-    if (
-        not last_record.empty
-    ):  # We may need to update this record, and append the rest
+    if not last_record.empty:  # We may need to update this record, and append the rest
         overlap = pd.to_datetime(last_record["end"])
         if tranges[0].lower <= overlap and tranges[0].upper >= overlap:
             if tranges[0].upper >= pd.to_datetime(last_record["begin"]):
-                warnings.warn(
-                    "Time range received conflicts with existing records"
-                )
+                warnings.warn("Time range received conflicts with existing records")
             tranges[0] = datetimerange(
                 pd.to_datetime(last_record["begin"]), tranges[0].upper
             )

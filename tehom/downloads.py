@@ -78,8 +78,7 @@ def download_ships(year: int, month: int, zone: int) -> None:
             _persistence.update_ais_downloads(year, month, zone, ais_db)
         else:
             raise RuntimeError(
-                "Failed to load data to database; check format of"
-                f" {unzipped_target}"
+                f"Failed to load data to database; check format of {unzipped_target}"
             )
     else:
         print(f"AIS data already stored for {year}, {month} zone {zone}.")
@@ -291,9 +290,7 @@ def certify_audio_availability():
         tranges = _query_single_audio_availability(
             row["deviceCode"], row["begin"], row["end"]
         )
-        _persistence.save_audio_availability_progress(
-            tranges, row, _persistence.ONC_DB
-        )
+        _persistence.save_audio_availability_progress(tranges, row, _persistence.ONC_DB)
 
 
 def _query_single_audio_availability(
@@ -325,9 +322,7 @@ def _query_single_audio_availability(
 def _deterime_tranges_from_files(files):
     time_pattern = r"_(\d{8}T\d{6}(?:\.\d+)?Z)"
     file_times = (
-        pd.Series(files)
-        .str.extract(time_pattern, expand=False)
-        .astype(np.datetime64)
+        pd.Series(files).str.extract(time_pattern, expand=False).astype(np.datetime64)
     )
     file_times = file_times.dropna()
     finish_times = file_times + pd.Timedelta("00:05:00")
@@ -345,9 +340,7 @@ def _deterime_tranges_from_files(files):
     return tranges
 
 
-def _what_to_certify(
-    hphones: pd.DataFrame, processed_df: pd.DataFrame
-) -> pd.DataFrame:
+def _what_to_certify(hphones: pd.DataFrame, processed_df: pd.DataFrame) -> pd.DataFrame:
     """Subtract processed records from total records
 
     Individual records can either be identical, new, or have the same
@@ -417,12 +410,8 @@ def get_audio_availability(
 
 def filter_hphones_rect(hphones, sw_corner=(-90, -180), ne_corner=(90, 180)):
     """Filter a hydrophone table by geographic area"""
-    lat_filter = (hphones["lat"] > sw_corner[0]) & (
-        hphones["lat"] < ne_corner[0]
-    )
-    lon_filter = (hphones["lon"] > sw_corner[1]) & (
-        hphones["lon"] < ne_corner[1]
-    )
+    lat_filter = (hphones["lat"] > sw_corner[0]) & (hphones["lat"] < ne_corner[0])
+    lon_filter = (hphones["lon"] > sw_corner[1]) & (hphones["lon"] < ne_corner[1])
     return hphones.loc[lat_filter & lon_filter]
 
 
@@ -477,9 +466,7 @@ def show_available_data(
     ais_data = _persistence.get_ais_downloads(_persistence.AIS_DB)
     ais_data = pd.DataFrame(ais_data, columns=["year", "month", "zone"])
     ais_data["begin"] = ais_data.apply(
-        lambda row: pd.to_datetime(
-            str(row["year"]) + f"{row['month']:02}01", utc=True
-        ),
+        lambda row: pd.to_datetime(str(row["year"]) + f"{row['month']:02}01", utc=True),
         axis=1,
     )
     ais_data["end"] = ais_data.apply(
@@ -509,19 +496,11 @@ def show_available_data(
 
         hphones = hphones.sort_values(["zone", "deviceCode"])
         zone_nbars = (
-            hphones.groupby("zone")["deviceCode"]
-            .nunique()
-            .sort_index(ascending=False)
+            hphones.groupby("zone")["deviceCode"].nunique().sort_index(ascending=False)
         )
-        zone_barstart = (
-            zone_nbars.sort_index().cumsum() - zone_nbars.sort_index() - 0.5
-        )
-        ais_data["bottom"] = ais_data["zone"].apply(
-            lambda z: zone_barstart.loc[z]
-        )
-        ais_data["height"] = ais_data["zone"].apply(
-            lambda z: zone_nbars.loc[z]
-        )
+        zone_barstart = zone_nbars.sort_index().cumsum() - zone_nbars.sort_index() - 0.5
+        ais_data["bottom"] = ais_data["zone"].apply(lambda z: zone_barstart.loc[z])
+        ais_data["height"] = ais_data["zone"].apply(lambda z: zone_nbars.loc[z])
 
         hphones["label"] = hphones.apply(
             lambda row: "Zone " + str(row["zone"]) + ": " + row["deviceCode"],
@@ -552,10 +531,7 @@ def show_available_data(
         old_tics = plt.xticks()
         plt.xticks(
             old_tics[0],
-            [
-                Text(val, 0, pd.Timestamp(val / 1e9, unit="s"))
-                for val in old_tics[0]
-            ],
+            [Text(val, 0, pd.Timestamp(val / 1e9, unit="s")) for val in old_tics[0]],
             rotation=70,
         )
 
@@ -641,12 +617,8 @@ def sample(
             )
 
             lat, lon = _get_hphone_posit(hydrophone, list(times)[0])
-            filtered_ais = _get_ais_data(
-                trange.lower, trange.higher, lat, lon, ais_db
-            )
-            interpolated_ships = _interpolate_and_group_ais(
-                filtered_ais, times
-            )
+            filtered_ais = _get_ais_data(trange.lower, trange.higher, lat, lon, ais_db)
+            interpolated_ships = _interpolate_and_group_ais(filtered_ais, times)
             labels = interpolated_ships.apply(
                 lambda df: _ais_labeler(df, sample_params)
             )
@@ -754,9 +726,7 @@ def _stitch_files_to_array(
     pass
 
 
-def _get_hphone_posit(
-    hydrophone: str, time: pd.Timestamp
-) -> Tuple[float, float]:
+def _get_hphone_posit(hydrophone: str, time: pd.Timestamp) -> Tuple[float, float]:
     """Determine hydrophone position at a specific time.
 
     Hydrophones do not move frequently, but they are repositioned

@@ -3,15 +3,13 @@ import argparse
 
 from ._version import get_versions
 from ._persistence import save_user_token
-from .downloads import download_ships, download_acoustics
+from .downloads import download_ships, download_acoustics, certify_audio_availability
 
 __version__ = get_versions()["version"]
 del get_versions
 
 
-save_token_parser = argparse.ArgumentParser(
-    description=save_user_token.__doc__
-)
+save_token_parser = argparse.ArgumentParser(description=save_user_token.__doc__)
 save_token_parser.add_argument("token")
 save_token_parser.add_argument("-f", "--force", type=bool, default=False)
 
@@ -50,6 +48,11 @@ def __main__():
     elif subcommand == "sound":
         parser = download_acoustics_parser
         subcommand = download_acoustics
+    elif subcommand == "cert":
+        parser = argparse.ArgumentParser(
+            description="Certify hydrophone availability (no arguments)"
+        )
+        subcommand = certify_audio_availability
     else:
         raise ValueError(f"No subcommand named '{subcommand}'")
     args = parser.parse_args(sys.argv[2:])
