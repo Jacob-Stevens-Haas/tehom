@@ -381,7 +381,14 @@ def load_audio_availability_progress() -> pd.DataFrame:
         return pd.DataFrame()
     else:
         with open(ONC_DIR / "cert_progress.log", "rb") as fh:
-            progress_df = pickle.load(fh)
+            try:
+                progress_df = pickle.load(fh)
+            except EOFError:
+                raise RuntimeError(
+                    "cert_progress.log is corrupt.  To restart certifying"
+                    " hydrophone availability, delete this file and the"
+                    " availability table in onc.db"
+                )
         return progress_df
 
 
@@ -422,6 +429,11 @@ def save_audio_availability_progress(tranges, row, onc_db):
     # Save what has been processed
     # Update availability table with certified data availability
     with eng.connect() as conn:
+        if progress_df is None:
+            raise TypeError(
+                "Progress DataFrame is None, writing to cert_progress or"
+                " availability table will corrupt it.  Exiting"
+            )
         with open(ONC_DIR / "cert_progress.log", "wb") as fh:
             pickle.dump(progress_df.reset_index(), fh)
         if del_stmt:
