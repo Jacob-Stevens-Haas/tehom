@@ -368,7 +368,12 @@ def get_onc_downloads(onc_db: Path = ONC_DB) -> Set:
     eng = _get_engine(onc_db)
     md = MetaData(eng)
     spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
-    return pd.read_sql(select(spans_table), eng)
+    spans_df = pd.read_sql(
+        select(spans_table),
+        eng,
+        parse_dates={"start": {"utc": True}, "finish": {"utc": True}},
+    )
+    return spans_df
 
 
 def load_audio_availability_progress() -> pd.DataFrame:
