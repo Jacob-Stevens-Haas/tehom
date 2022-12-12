@@ -15,6 +15,7 @@ import logging
 import shutil
 import subprocess
 import re
+import warnings
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -480,7 +481,27 @@ def show_available_data(
         hphones = get_audio_availability(begin, end, True)
     else:
         hphones = get_audio_availability(begin, end)
+    begin = pd.to_datetime(begin, utc=True)
+    end = pd.to_datetime(end, utc=True)
+    spans_df = _persistence.get_onc_downloads()
+    spans_df = spans_df[(spans_df["start"] < end) & (spans_df["finish"] > begin)]
     hphones = filter_hphones_rect(hphones, bottomleft, topright)
+
+    def lookup_zone(deviceCode):
+        zones = hphones.query(f"deviceCode=='{deviceCode}'")["zone"]
+        if len(zones.unique()) > 0:
+            return zones.iloc[0]
+        if len(zones.unique()) > 1:
+            warnings.warn(
+                "Assigning data to a zone is ambiguous because hydrophone moved zones"
+                " over interval;  Please report this warning"
+            )
+
+    spans_df["zone"] = spans_df["hydrophone"].apply(lookup_zone)
+    spans_df = spans_df.dropna(subset=["zone"])
+    spans_df = spans_df.rename(
+        columns={"hydrophone": "deviceCode", "start": "begin", "finish": "end"}
+    )
     if style == "bar":
 
         def all_same_loc(df):
@@ -502,16 +523,26 @@ def show_available_data(
         ais_data["bottom"] = ais_data["zone"].apply(lambda z: zone_barstart.loc[z])
         ais_data["height"] = ais_data["zone"].apply(lambda z: zone_nbars.loc[z])
 
-        hphones["label"] = hphones.apply(
-            lambda row: "Zone " + str(row["zone"]) + ": " + row["deviceCode"],
-            axis=1,
+        def id_bar_coords(df):
+            label = df.apply(
+                lambda row: "Zone " + str(row["zone"]) + ": " + row["deviceCode"],
+                axis=1,
+            )
+            left = df["begin"].apply(
+                lambda time: max(pd.to_datetime(begin, utc=True), time)
+            )
+            right = df["end"].apply(
+                lambda time: min(pd.to_datetime(end, utc=True), time)
+            )
+            return label, left, right
+
+        hphones["label"], hphones["left"], hphones["right"] = id_bar_coords(hphones)
+        spans_df["label"], spans_df["left"], spans_df["right"] = id_bar_coords(spans_df)
+        ys = pd.Series(
+            range(len(hphones["label"].drop_duplicates())),
+            index=hphones["label"].drop_duplicates(),
         )
-        hphones["left"] = hphones["begin"].apply(
-            lambda time: max(pd.to_datetime(begin, utc=True), time)
-        )
-        hphones["right"] = hphones["end"].apply(
-            lambda time: min(pd.to_datetime(end, utc=True), time)
-        )
+        spans_df["y"] = spans_df["label"].apply(lambda label: ys.loc[label])
         plt.figure(figsize=[8, 10])
         plt.barh(
             ais_data["bottom"],
@@ -528,6 +559,26 @@ def show_available_data(
             left=hphones["left"].view(int),
             color=DEFAULT_COLORS[0],
         )
+        mp3_df = spans_df.query("format=='mp3'")
+        wav_df = spans_df.query("format=='wav'")
+        if not mp3_df.empty:
+            plt.barh(
+                mp3_df["y"] - 0.05,
+                (mp3_df["right"] - mp3_df["left"]).view(int),
+                height=-0.35,
+                left=mp3_df["left"].view(int),
+                align="edge",
+                color=DEFAULT_COLORS[2],
+            )
+        if not wav_df.empty:
+            plt.barh(
+                wav_df["y"] + 0.05,
+                (wav_df["right"] - wav_df["left"]).view(int),
+                height=0.35,
+                left=wav_df["left"].view(int),
+                align="edge",
+                color=DEFAULT_COLORS[3],
+            )
         old_tics = plt.xticks()
         plt.xticks(
             old_tics[0],
