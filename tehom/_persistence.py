@@ -184,7 +184,7 @@ def _onc_files_columns():
         Column("hydrophone", String, primary_key=True),
         Column("start", String, primary_key=True),
         Column("duration", Integer),
-        Column("format", String),
+        Column("format", String, primary_key=True),
         Column("filename", String),
     ]
 

@@ -246,7 +246,7 @@ def download_acoustics(
                 }
             )
         except TypeError:
-            # Bug in ONC code, skip hydrophone
+            # Bug in ONC code due to no files in range, skip hydrophone
             continue
         req_id = request["dpRequestId"]
         run_ids = onc.runDataProduct(req_id)["runIds"]
