@@ -515,17 +515,17 @@ def show_available_data(
         plt.figure(figsize=[8, 10])
         plt.barh(
             ais_data["bottom"],
-            (ais_data["end"] - ais_data["begin"]).astype(int),
+            (ais_data["end"] - ais_data["begin"]).view(int),
             ais_data["height"],
-            ais_data["begin"].astype(int),
+            ais_data["begin"].view(int),
             align="edge",
             color=DEFAULT_COLORS[1],
         )
         plt.barh(
             hphones["label"],
-            (hphones["right"] - hphones["left"]).astype(int),
+            (hphones["right"] - hphones["left"]).view(int),
             height=0.8,
-            left=hphones["left"].astype(int),
+            left=hphones["left"].view(int),
             color=DEFAULT_COLORS[0],
         )
         old_tics = plt.xticks()
