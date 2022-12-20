@@ -83,6 +83,10 @@ def test_show_bar():
     downloads.show_available_data(begin="2016-06", end="2016-08", style="bar")
 
 
+def test_show_map():
+    downloads.show_available_data(begin="2016-06", end="2016-08", style="map")
+
+
 def test_show_bar_avail():
     downloads.show_available_data(
         begin="2016-06", end="2016-08", style="bar", certified=True

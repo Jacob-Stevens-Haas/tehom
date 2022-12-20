@@ -18,7 +18,7 @@ tehom = "tehom.__init__:__main__"
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
 verbose = 1
-experimental-string-processing = 1
+preview = 1
 line-length = 88
 force-exclude = '''
 (

@@ -29,6 +29,7 @@ import pandas as pd
 import numpy as np
 import spans
 import pytz
+import plotly.graph_objects as go
 
 from matplotlib import pyplot as plt
 from matplotlib.text import Text
@@ -270,7 +271,6 @@ def download_acoustics(
         req_id = request["dpRequestId"]
         run_ids = onc.runDataProduct(req_id)["runIds"]
         for id in run_ids:
-
             downloads = onc.downloadDataProduct(id, includeMetadataFile=False)
             files += [
                 download["file"]
@@ -603,6 +603,46 @@ def show_available_data(
             [Text(val, 0, pd.Timestamp(val / 1e9, unit="s")) for val in old_tics[0]],
             rotation=70,
         )
+    elif style == "map":
+        # calculate months of AIS data for each deployment
+        count_ais = lambda zone: (ais_data["zone"] == zone).sum()  # noqa: E731
+        hphones["months_ais"] = hphones["zone"].apply(count_ais)
+
+        def sum_downloaded(deviceCode, extension):
+            device_match = spans_df["deviceCode"] == deviceCode
+            ext_match = spans_df["format"] == extension
+            match_df = spans_df[device_match & ext_match]
+            intervals = match_df["end"] - match_df["begin"]
+            return intervals.sum()
+
+        hphones["mp3data"] = hphones["deviceCode"].apply(sum_downloaded, args=("mp3",))
+        hphones["wavdata"] = hphones["deviceCode"].apply(sum_downloaded, args=("wav",))
+        labelme = lambda row: (  # noqa: E731
+            # line breaks fixed in unreleased black
+            # fmt: off
+            f"{row['deviceCode']}<br>"
+            f"({row['lat']},{row['lon']})<br>"
+            f"deployment from {row['begin']} to {row['end']}<br>"
+            f"{row['months_ais']} months of AIS data downloaded<br>"
+            f"{row['wavdata']} wav data downloaded<br>"
+            f"{row['mp3data']} mp3 data downloaded<br>"
+            f"across all deployments for this hydrophone and interval"
+            # fmt: on
+        )
+        hphones["label"] = hphones.apply(labelme, axis=1)
+        fig = go.Figure(
+            go.Scattergeo(
+                lat=hphones["lat"],
+                lon=hphones["lon"],
+                text=hphones["label"],
+                hoverinfo="text",
+            )
+        )
+        fig.update_geos(fitbounds="locations")
+        fig.update_layout(height=400, margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        fig.show()
+    else:
+        raise ValueError("Only allowed styles are 'map' and 'bar'.")
 
 
 @dataclass
