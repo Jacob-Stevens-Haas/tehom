@@ -561,8 +561,9 @@ def show_available_data(
             index=hphones["label"].drop_duplicates(),
         )
         spans_df["y"] = spans_df["label"].apply(lambda label: ys.loc[label])
-        plt.figure(figsize=[8, 10])
-        plt.barh(
+        fig = plt.figure(figsize=[8, 10])
+        ax = fig.add_subplot(1, 1, 1)
+        ax.barh(
             ais_data["bottom"],
             (ais_data["end"] - ais_data["begin"]).view(int),
             ais_data["height"],
@@ -570,7 +571,7 @@ def show_available_data(
             align="edge",
             color=DEFAULT_COLORS[1],
         )
-        plt.barh(
+        ax.barh(
             hphones["label"],
             (hphones["right"] - hphones["left"]).view(int),
             height=0.8,
@@ -580,7 +581,7 @@ def show_available_data(
         mp3_df = spans_df.query("format=='mp3'")
         wav_df = spans_df.query("format=='wav'")
         if not mp3_df.empty:
-            plt.barh(
+            ax.barh(
                 mp3_df["y"] - 0.05,
                 (mp3_df["right"] - mp3_df["left"]).view(int),
                 height=-0.35,
@@ -589,7 +590,7 @@ def show_available_data(
                 color=DEFAULT_COLORS[2],
             )
         if not wav_df.empty:
-            plt.barh(
+            ax.barh(
                 wav_df["y"] + 0.05,
                 (wav_df["right"] - wav_df["left"]).view(int),
                 height=0.35,
@@ -597,12 +598,13 @@ def show_available_data(
                 align="edge",
                 color=DEFAULT_COLORS[3],
             )
-        old_tics = plt.xticks()
-        plt.xticks(
-            old_tics[0],
-            [Text(val, 0, pd.Timestamp(val / 1e9, unit="s")) for val in old_tics[0]],
+        old_tics = ax.get_xticks()
+        ax.set_xticks(
+            old_tics,
+            [Text(val, 0, pd.Timestamp(val / 1e9, unit="s")) for val in old_tics],
             rotation=70,
         )
+        return fig
     elif style == "map":
         # calculate months of AIS data for each deployment
         count_ais = lambda zone: (ais_data["zone"] == zone).sum()  # noqa: E731
@@ -640,7 +642,7 @@ def show_available_data(
         )
         fig.update_geos(fitbounds="locations")
         fig.update_layout(height=400, margin={"r": 0, "t": 0, "l": 0, "b": 0})
-        fig.show()
+        return fig
     else:
         raise ValueError("Only allowed styles are 'map' and 'bar'.")
 
