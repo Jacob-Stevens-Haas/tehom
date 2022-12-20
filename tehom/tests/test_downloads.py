@@ -56,17 +56,24 @@ def test_integration_temps_removed(complete_ship_download):
 def test_acoustic_files_downloaded(declare_stateful):
     onc_folder = _persistence.ONC_DIR
     downloads.download_acoustics(
-        ["ICLISTENHF1252"], "20160101T12:00:00", "20160101T12:01:00", "wav"
+        ["ICLISTENHF1251"],
+        "2016-06-20T12:00:00.000Z",
+        "2016-06-20T12:01:00.000Z",
+        "wav",
     )
     files = (file.name for file in onc_folder.iterdir())
-    assert "ICLISTENHF1252_20160101T115623.000Z.wav" in files
+    assert "ICLISTENHF1251_20160620T115632.000Z.wav" in files
 
 
 @pytest.mark.slow
-def test_acoustic_files_downloaded2(declare_stateful):
+def test_acoustic_files_downloaded_no_diversion_mode(declare_stateful):
+    # See https://github.com/OceanNetworksCanada/api-python-client/issues/4
     onc_folder = _persistence.ONC_DIR
     downloads.download_acoustics(
-        ["ICLISTENHF1352"], "20160101T12:00:00", "20160101T12:01:00", "mp3"
+        ["ICLISTENHF1252"],
+        "2016-01-01T12:00:00.000Z",
+        "2016-01-01T12:01:00.000Z",
+        "wav",
     )
     files = (file.name for file in onc_folder.iterdir())
     assert "ICLISTENHF1252_20160101T115623.000Z.wav" in files

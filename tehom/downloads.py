@@ -242,13 +242,31 @@ def download_acoustics(
                     "dateFrom": _onc_iso_fmt(begin),
                     "dateTo": _onc_iso_fmt(end),
                     "deviceCode": hphone,
-                    # "dpo_hydrophoneDataDiversionMode": "OD",
+                    "dpo_hydrophoneDataDiversionMode": "OD",
                     "dpo_audioDownsample": -1,
                 }
             )
         except TypeError:
-            # Bug in ONC code due to no files in range, skip hydrophone
+            # See https://github.com/OceanNetworksCanada/api-python-client/issues/3
             continue
+        except Exception:
+            # See https://github.com/OceanNetworksCanada/api-python-client/issues/4
+            try:
+                request = onc.requestDataProduct(
+                    filters={
+                        "dataProductCode": code_from_extension(extension),
+                        "extension": extension,
+                        "dateFrom": _onc_iso_fmt(begin),
+                        "dateTo": _onc_iso_fmt(end),
+                        "deviceCode": hphone,
+                        # "dpo_hydrophoneDataDiversionMode": "OD",
+                        "dpo_audioDownsample": -1,
+                    }
+                )
+            except TypeError:
+                # See https://github.com/OceanNetworksCanada/api-python-client/issues/3
+                continue
+
         req_id = request["dpRequestId"]
         run_ids = onc.runDataProduct(req_id)["runIds"]
         for id in run_ids:
