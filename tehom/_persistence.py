@@ -119,6 +119,7 @@ def _get_engine(db: Path) -> sqlalchemy.engine.base.Engine:
 
 def init_ais_db(ais_db: Union[Path, str]) -> MetaData:
     """Initializes the local AIS record database, if it does not exist"""
+    init_data_folder()
     eng = _get_engine(ais_db)
     md = MetaData(eng)
     meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
@@ -159,6 +160,7 @@ def _ais_ships_columns():
 
 def init_onc_db(onc_db: Union[Path, str]) -> None:
     """Initializes the local ONC record database, if it does not exist"""
+    init_data_folder()
     eng = _get_engine(onc_db)
     md = MetaData(eng)
     spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841
@@ -220,7 +222,7 @@ def save_user_token(token: Union[Path, str], force: bool = False) -> None:
         fh.write(token)
 
 
-def get_ais_downloads(ais_db: Union[Path, str] = AIS_DB) -> List[Tuple]:
+def get_ais_downloads(ais_db: Union[Path, str] = None) -> List[Tuple]:
     """Identify which AIS year-month-zone combinations have already been
     added to the AIS database
 
@@ -231,6 +233,9 @@ def get_ais_downloads(ais_db: Union[Path, str] = AIS_DB) -> List[Tuple]:
         set of records, each arragned as a tuple comprising (year,
         month, zone)
     """
+    if ais_db is None:
+        ais_db = AIS_DB
+    init_ais_db(ais_db)
     eng = _get_engine(ais_db)
     md = MetaData(eng)
     meta_table = Table("meta", md, *_ais_meta_columns())  # noqa: F841
@@ -342,7 +347,10 @@ def datetimerangeset_from_df(df):
     return datetimerangeset(ranges)
 
 
-def get_onc_certified(onc_db: Path = ONC_DB) -> pd.DataFrame:
+def get_onc_certified(onc_db: Path = None) -> pd.DataFrame:
+    if onc_db is None:
+        onc_db = ONC_DB
+    init_onc_db(onc_db)
     eng = _get_engine(onc_db)
     md = MetaData(eng)
     spans_table = Table("availability", md, *_onc_availability_columns())  # noqa: F841
@@ -354,7 +362,7 @@ def get_onc_certified(onc_db: Path = ONC_DB) -> pd.DataFrame:
     return hphones
 
 
-def get_onc_downloads(onc_db: Path = ONC_DB) -> Set:
+def get_onc_downloads(onc_db: Path = None) -> Set:
     """Identify which ONC hydrophone data ranges have been downloaded
     and tracked in the ONC database.
 
@@ -365,6 +373,9 @@ def get_onc_downloads(onc_db: Path = ONC_DB) -> Set:
         DataFrame of records for each hydrophone's downloaded data range
         for each format of download.
     """
+    if onc_db is None:
+        onc_db = ONC_DB
+    init_onc_db(onc_db)
     eng = _get_engine(onc_db)
     md = MetaData(eng)
     spans_table = Table("spans", md, *_onc_spans_columns())  # noqa: F841

@@ -16,6 +16,16 @@ def test_stateful_switch(declare_stateful):
     assert result == expected
 
 
+def test_query_ais_no_table(declare_stateful):
+    result = _persistence.get_ais_downloads()
+    assert result == []
+
+
+def test_query_onc_no_table(declare_stateful):
+    result = _persistence.get_onc_downloads()
+    assert result.empty
+
+
 def test_save_token(declare_stateful):
     expected = "hahaha"
     _persistence.save_user_token(expected)
