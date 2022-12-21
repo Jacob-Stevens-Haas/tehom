@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=60",
     "wheel",
     "setuptools_scm[toml]>=6.2",
 ]
@@ -8,12 +8,70 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tehom"
+description = "Transform underwater acoustic data into training data for machine learning."
+readme = "README.md"
+authors = [
+  {name = "Jake Stevens-Haas", email = "jacob.stevens.haas@gmail.com"}
+]
+license = {file = "LICENSE"}
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Multimedia :: Sound/Audio",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+  "pandas",
+  "matplotlib",
+  "numpy",
+  "plotly",
+  # onc has unstable versioning, pin it.
+  "onc==2.3.5",
+  "sqlalchemy",
+  "spans",
+  "requests",
+  "nbformat~=5.7",
+]
+"requires-python" = ">=3.7"
 dynamic = ["version"]
+
+
+[project.urls]
+"Bug Tracker" = "https://github.com/Jacob-Stevens-Haas/tehom/issues"
+"Documentation" = "https://tehom.readthedocs.io/en/latest/"
+"Source Code" = "https://github.com/Jacob-Stevens-Haas/tehom"
 
 [project.scripts]
 tehom = "tehom.__init__:__main__"
 
-[tool.setuptools_scm]
+# setuptools-specified tables
+[project.optional-dependencies]
+dev = [
+  "coverage",
+  "black",
+  "flake8",
+  "flake8-comprehensions",
+  "isort",
+  "pre-commit",
+  "pip",
+  "pytest",
+  "twine",
+  "wheel"
+]
+
+
+[tool.setuptools]
+platforms = ["any"]
+zip-safe = false
 
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
@@ -38,7 +96,6 @@ force-exclude = '''
   | docs
   | _version.py
   | setup.py
-  | versioneer.py
 )
 '''
 
