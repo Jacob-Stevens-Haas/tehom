@@ -301,6 +301,7 @@ def certify_audio_availability():
     As this is a long-running-process, it saves its progress along the
     way in a pickle file and restarts from the last pickle.
     """
+    _persistence.init_data_folder()
     _persistence.init_onc_db(_persistence.ONC_DB)
     hphones = _get_deployments()
     processed_df = _persistence.load_audio_availability_progress()

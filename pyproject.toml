@@ -75,7 +75,7 @@ zip-safe = false
 
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
-verbose = 1
+verbose = 0
 preview = 1
 line-length = 88
 force-exclude = '''
