@@ -13,7 +13,7 @@ readme = "README.md"
 authors = [
   {name = "Jake Stevens-Haas", email = "jacob.stevens.haas@gmail.com"}
 ]
-license = {file = "LICENSE"}
+license = {text = "AGPL"}
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Environment :: Console",
@@ -65,13 +65,15 @@ dev = [
   "pip",
   "pytest",
   "twine",
-  "wheel"
+  "wheel",
+  "build~=0.9"
 ]
 
 
 [tool.setuptools]
 platforms = ["any"]
 zip-safe = false
+include-package-data = false
 
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
