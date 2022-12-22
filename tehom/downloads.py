@@ -247,9 +247,12 @@ def download_acoustics(
                     "dpo_audioDownsample": -1,
                 }
             )
-        except TypeError:
+        except TypeError as exc:
             # See https://github.com/OceanNetworksCanada/api-python-client/issues/3
-            continue
+            if "sting indices must be integers" in str(exc):
+                continue
+            else:
+                raise
         except Exception:
             # See https://github.com/OceanNetworksCanada/api-python-client/issues/4
             try:
@@ -264,10 +267,12 @@ def download_acoustics(
                         "dpo_audioDownsample": -1,
                     }
                 )
-            except TypeError:
+            except TypeError as exc:
                 # See https://github.com/OceanNetworksCanada/api-python-client/issues/3
-                continue
-
+                if "sting indices must be integers" in str(exc):
+                    continue
+                else:
+                    raise
         req_id = request["dpRequestId"]
         run_ids = onc.runDataProduct(req_id)["runIds"]
         for id in run_ids:
@@ -436,8 +441,15 @@ def filter_hphones_rect(hphones, sw_corner=(-90, -180), ne_corner=(90, 180)):
 
 
 def _onc_iso_fmt(dt: Union[Timestamp, str]) -> str:
-    """Formats the datetime according to how ONC needs it in requests."""
-    dt = np.datetime64(pd.to_datetime(dt), "ms")
+    """Formats the datetime according to how ONC needs it in requests.
+
+    Note: all datetimes are changed to UTC, and assumed UTC if no
+    timezone present.
+    """
+    pdt = pd.to_datetime(dt)
+    if pdt.tz is not None:
+        pdt = pdt.tz_convert(None)
+    dt = np.datetime64(pdt, "ms")
     return np.datetime_as_string(dt, timezone="UTC")
 
 

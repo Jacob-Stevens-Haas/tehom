@@ -93,6 +93,16 @@ def test_show_bar_avail():
     )
 
 
+def test_onc_iso_fmt_tz_handling():
+    expected = "2016-06-20T12:00:00.000Z"
+    dt_utc = "2016-06-20T12:00:00.000Z"
+    result = downloads._onc_iso_fmt(dt_utc)
+    assert result == expected
+    dt = "2016-06-20T12:00:00.000"
+    result = downloads._onc_iso_fmt(dt)
+    assert result == expected
+
+
 @pytest.fixture
 def mock_load_datetime():
     return pd.Timestamp("20160401T000001Z")
