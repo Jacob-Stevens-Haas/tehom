@@ -497,16 +497,21 @@ def show_available_data(
 
     ais_data = _persistence.get_ais_downloads(_persistence.AIS_DB)
     ais_data = pd.DataFrame(ais_data, columns=["year", "month", "zone"])
-    ais_data["begin"] = ais_data.apply(
-        lambda row: pd.to_datetime(str(row["year"]) + f"{row['month']:02}01", utc=True),
-        axis=1,
-    )
-    ais_data["end"] = ais_data.apply(
-        lambda row: pd.to_datetime(
-            str(row["year"]) + f"{row['month']+1:02}01", utc=True
-        ),
-        axis=1,
-    )
+    if not ais_data.empty:
+        ais_data["begin"] = ais_data.apply(
+            lambda row: pd.to_datetime(
+                str(row["year"]) + f"{row['month']:02}01", utc=True
+            ),
+            axis=1,
+        )
+        ais_data["end"] = ais_data.apply(
+            lambda row: pd.to_datetime(
+                str(row["year"]) + f"{row['month']+1:02}01", utc=True
+            ),
+            axis=1,
+        )
+    else:
+        ais_data = pd.concat((ais_data, pd.DataFrame(columns=["begin", "end"])), axis=1)
     ais_data = ais_data[(ais_data["end"] > begin) & (ais_data["begin"] < end)]
     if certified:
         hphones = get_audio_availability(begin, end, True)
@@ -555,10 +560,13 @@ def show_available_data(
         ais_data["height"] = ais_data["zone"].apply(lambda z: zone_nbars.loc[z])
 
         def id_bar_coords(df):
-            label = df.apply(
-                lambda row: "Zone " + str(row["zone"]) + ": " + row["deviceCode"],
-                axis=1,
-            )
+            if not df.empty:
+                label = df.apply(
+                    lambda row: "Zone " + str(row["zone"]) + ": " + row["deviceCode"],
+                    axis=1,
+                )
+            else:
+                label = pd.Series()
             left = df["begin"].apply(
                 lambda time: max(pd.to_datetime(begin, utc=True), time)
             )
@@ -576,14 +584,15 @@ def show_available_data(
         spans_df["y"] = spans_df["label"].apply(lambda label: ys.loc[label])
         fig = plt.figure(figsize=[8, 10])
         ax = fig.add_subplot(1, 1, 1)
-        ax.barh(
-            ais_data["bottom"],
-            (ais_data["end"] - ais_data["begin"]).view(int),
-            ais_data["height"],
-            ais_data["begin"].view(int),
-            align="edge",
-            color=DEFAULT_COLORS[1],
-        )
+        if not ais_data.empty:
+            ax.barh(
+                ais_data["bottom"],
+                (ais_data["end"] - ais_data["begin"]).view(int),
+                ais_data["height"],
+                ais_data["begin"].view(int),
+                align="edge",
+                color=DEFAULT_COLORS[1],
+            )
         ax.barh(
             hphones["label"],
             (hphones["right"] - hphones["left"]).view(int),
