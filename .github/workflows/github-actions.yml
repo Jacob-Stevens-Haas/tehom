@@ -28,8 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
-          python setup.py install
+          pip install .[dev]
           pre-commit install
           echo ${{ secrets.ONC_TOKEN }} > tehom/storage/token
           cat tehom/storage/token
