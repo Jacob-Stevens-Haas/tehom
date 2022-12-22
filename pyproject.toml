@@ -75,6 +75,8 @@ platforms = ["any"]
 zip-safe = false
 include-package-data = false
 
+[tool.setuptools_scm]
+
 [tool.black]
 target-version = ['py37', 'py38', 'py39']
 verbose = 0
