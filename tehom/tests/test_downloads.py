@@ -79,15 +79,15 @@ def test_acoustic_files_downloaded_no_diversion_mode(declare_stateful):
     assert "ICLISTENHF1252_20160101T115623.000Z.wav" in files
 
 
-def test_show_bar():
+def test_show_bar(declare_stateful):
     downloads.show_available_data(begin="2016-06", end="2016-08", style="bar")
 
 
-def test_show_map():
+def test_show_map(declare_stateful):
     downloads.show_available_data(begin="2016-06", end="2016-08", style="map")
 
 
-def test_show_bar_avail():
+def test_show_bar_avail(declare_stateful):
     downloads.show_available_data(
         begin="2016-06", end="2016-08", style="bar", certified=True
     )
