@@ -13,7 +13,7 @@
 # import os
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from tehom._version import get_versions
 revision = get_versions()['version']
@@ -37,12 +37,17 @@ release = revision
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinxcontrib.apidoc',
     'sphinx.ext.autodoc',
     'sphinx.ext.todo', #optional.  Allows inline "todo:"
     'sphinx.ext.imgmath', #optional. Allows LaTeX equations 
     'sphinx.ext.napoleon', #Allows google/numpy docstrings
     'sphinx.ext.githubpages', #Adds .nojekyll file
 ]
+
+apidoc_module_dir = str(Path("../..").resolve() / project)
+apidoc_output_dir = str(Path().resolve())
+print(apidoc_output_dir)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

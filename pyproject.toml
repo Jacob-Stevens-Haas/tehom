@@ -69,7 +69,8 @@ dev = [
   "build~=0.9"
 ]
 docs = [
-  "sphinx==4.0.2",
+  "sphinx==6.0.0",
+  "sphinxcontrib-apidoc",
 ]
 
 [tool.setuptools]

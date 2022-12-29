@@ -4,11 +4,13 @@ tehom package
 Submodules
 ----------
 
-.. toctree::
-   :maxdepth: 4
+tehom.downloads module
+----------------------
 
-   tehom.datalib
-   tehom.shared
+.. automodule:: tehom.downloads
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
