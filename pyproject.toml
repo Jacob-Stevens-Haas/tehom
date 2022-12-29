@@ -68,7 +68,9 @@ dev = [
   "wheel",
   "build~=0.9"
 ]
-
+docs = [
+  "sphinx==4.0.2",
+]
 
 [tool.setuptools]
 platforms = ["any"]
