@@ -1,10 +1,10 @@
 """Create data samples of labeled acoustics
 
-Datalib calls on hydrophone data from Ocean Networks Canada and
+Uses hydrophone data from Ocean Networks Canada and
 Automated Information System records from Marine Cadastre to
 label acoustic recordings for machine learning.
 
-With the datalib, you can:
+With this module, you can:
 
 * Download blocks of AIS records
 * Download hydrophone recordings
@@ -41,7 +41,7 @@ from plotly.graph_objs._figure import Figure as PFigure
 from spans import datetimerange
 
 from tehom import _persistence
-from tehom._persistence import get_ais_downloads  # noqa: F401
+from tehom._persistence import get_ais_downloads, get_onc_downloads  # noqa: F401
 
 logger = logging.getLogger(__name__)
 DateTime = Union[str, pd.Timestamp]
